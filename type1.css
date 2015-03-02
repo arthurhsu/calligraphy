@@ -1,0 +1,65 @@
+body {
+  width: 2550px;
+  height: 3300px;
+  margin: 0px 0px 0px 0px;
+}
+
+img {
+  position: absolute;
+}
+
+img.bg {
+  left: 0;
+  top: 0;
+  z-index: 0;
+}
+
+img.u {
+  top: 207px;
+  z-index: 1;
+}
+
+img.l {
+  top: 1836px;
+  z-index: 1;
+}
+
+img.c0 {
+  left: 231px;
+}
+
+img.c1 {
+  left: 441px;
+}
+
+img.c2 {
+  left: 651px;
+}
+
+img.c3 {
+  left: 861px;
+}
+
+img.c4 {
+  left: 1071px;
+}
+
+img.c5 {
+  left: 1281px;
+}
+
+img.c6 {
+  left: 1491px;
+}
+
+img.c7 {
+  left: 1701px;
+}
+
+img.c8 {
+  left: 1911px;
+}
+
+img.c9 {
+  left: 2121px;
+}

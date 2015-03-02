@@ -1,0 +1,8 @@
+{
+  "name": "hsu-calligraphy",
+  "version": "0.1.0",
+  "description": "Generate calligraphy",
+  "dependencies": {
+    "pdfkit": "~0.7.0"
+  }
+}
