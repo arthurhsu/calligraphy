@@ -1,7 +1,11 @@
 body {
-  width: 2550px;
-  height: 3300px;
+  width: 1216px;
+  height: 1455px;
   margin: 0px 0px 0px 0px;
+}
+
+@page {
+  margin: 1px 1px 1px 1px;
 }
 
 img {
@@ -9,57 +13,60 @@ img {
 }
 
 img.bg {
-  left: 0;
-  top: 0;
+  left: 81px;
+  top: 81px;
   z-index: 0;
+  width: 1054px;
 }
 
 img.u {
-  top: 207px;
+  width: 101px;
+  top: 84px;
   z-index: 1;
 }
 
 img.l {
-  top: 1836px;
+  width: 101px;
+  top: 824px;
   z-index: 1;
 }
 
 img.c0 {
-  left: 231px;
+  left: 85px;
 }
 
 img.c1 {
-  left: 441px;
+  left: 190px;
 }
 
 img.c2 {
-  left: 651px;
+  left: 295px;
 }
 
 img.c3 {
-  left: 861px;
+  left: 400px;
 }
 
 img.c4 {
-  left: 1071px;
+  left: 505px;
 }
 
 img.c5 {
-  left: 1281px;
+  left: 610px;
 }
 
 img.c6 {
-  left: 1491px;
+  left: 715px;
 }
 
 img.c7 {
-  left: 1701px;
+  left: 820px;
 }
 
 img.c8 {
-  left: 1911px;
+  left: 925px;
 }
 
 img.c9 {
-  left: 2121px;
+  left: 1030px;
 }
