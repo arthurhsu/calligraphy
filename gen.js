@@ -12,6 +12,10 @@ $(function() {
     var assetsLower = getAssets('#lower');
     generateSheet(assetsUpper, assetsLower);
   });
+
+  $('#print').click(function() {
+    $('#type1').get(0).contentWindow.print();
+  });
 });
 
 function getAssets(id) {
