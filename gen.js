@@ -35,12 +35,16 @@ function getAssets(id) {
 
 function generateSheet(assetsUpper, assetsLower) {
   assetsUpper.forEach(function(asset, index) {
-    var id = '#u' + index.toString();
-    $('#type1').contents().find(id).attr('src', asset);
+    for (var i = 0; i < 3; ++i) {
+      var id = '#u' + i.toString() + index.toString();
+      $('#type1').contents().find(id).attr('src', asset);
+    }
   });
   assetsLower.forEach(function(asset, index) {
-    var id = '#l' + index.toString();
-    $('#type1').contents().find(id).attr('src', asset);
+    for (var i = 0; i < 3; ++i) {
+      var id = '#l' + i.toString() + index.toString();
+      $('#type1').contents().find(id).attr('src', asset);
+    }
   });
 }
 

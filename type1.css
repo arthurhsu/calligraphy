@@ -19,15 +19,44 @@ img.bg {
   width: 1054px;
 }
 
-img.u {
+img.t {
+  opacity: 0.4;
+  filter: alpha(opacity=40); /* msie */
+}
+
+img.u0 {
   width: 101px;
   top: 84px;
   z-index: 1;
 }
 
-img.l {
+img.u1 {
+  width: 101px;
+  top: 189px;
+  z-index: 1;
+}
+
+img.u2 {
+  width: 101px;
+  top: 294px;
+  z-index: 1;
+}
+
+img.l0 {
   width: 101px;
   top: 824px;
+  z-index: 1;
+}
+
+img.l1 {
+  width: 101px;
+  top: 929px;
+  z-index: 1;
+}
+
+img.l2 {
+  width: 101px;
+  top: 1034px;
   z-index: 1;
 }
 
