@@ -23,10 +23,8 @@ function getAssets(id) {
   if (text.length) {
     var assets = new Array(text.length);
     for (var i = 0; i < text.length; ++i) {
-      assets[i] =
-        'assets/' +
-        text.charCodeAt(i).toString(16).toUpperCase() +
-        '.png';
+      var code = text.charCodeAt(i).toString(16).toUpperCase();
+      assets[i] = 'assets/' + code.slice(0, 1) + '/' + code + '.png';
     }
     return assets;
   }
