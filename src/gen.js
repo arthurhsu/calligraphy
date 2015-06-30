@@ -24,7 +24,7 @@ function getAssets(id) {
     var assets = new Array(text.length);
     for (var i = 0; i < text.length; ++i) {
       var code = text.charCodeAt(i).toString(16).toUpperCase();
-      assets[i] = 'assets/' + code.slice(0, 1) + '/' + code + '.png';
+      assets[i] = '../assets/' + code.slice(0, 1) + '/' + code + '.png';
     }
     return assets;
   }

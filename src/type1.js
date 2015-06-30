@@ -7,7 +7,7 @@
 
 // When the page loads.
 $(function() {
-  var src = 'src="assets/blank.png" />';
+  var src = 'src="../assets/blank.png" />';
   for (var i = 0; i < 3; ++i) {
     for (var j = 0; j < 10; ++j) {
       var id = i.toString() + j.toString() + '" ';

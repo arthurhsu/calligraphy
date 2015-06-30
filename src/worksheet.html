@@ -1,0 +1,25 @@
+<!doctype html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Calligraphy sheet generator</title>
+    <link rel="stylesheet" type="text/css" href="worksheet.css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" type="text/javascript"></script>
+  </head>
+  <body>
+    <h1>硬筆書法習字帖產生器
+    Calligraphy Practice Sheet Generator</h1>
+    <p>每張習字帖可容納二十個中文字，每排十字。
+    Each sheet can have at most 20 glyphs, 10 each row.</p>
+    <br/>
+    <span>上排文字 Upper row:&nbsp;</span><input type="text" id="upper" maxlength="10"></input>
+    <br/><br/>
+    <span>下排文字 Lower row:&nbsp;</span><input type="text" id="lower" maxlength="10"></input>
+    <br/><br/>
+    <input type="button" id="start" value="Generate"></input>
+    <input type="button" id="print" value="Print"></input>
+    <br /><br />
+    <iframe id="type1" class="type1" src="type1.html"></iframe>
+    <script src="gen.js" type="text/javascript"></script>
+  </body>
+</html>
