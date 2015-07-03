@@ -1,23 +1,30 @@
 <!doctype html>
 <html>
   <head>
+    <link rel="stylesheet" type="text/css" href="editor.css" />
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.10.2/jquery.min.js" type="text/javascript"></script>
-    <style>
-      .pad {
-        border: 1px solid red;
-        width: 500px;
-        height: 500px;
-      }
-    </style>
   </head>
   <body>
-    <svg xmlns="http://www.w3.org/2000/svg"
+    <div id="container" class="lefthalf">
+      <svg xmlns="http://www.w3.org/2000/svg"
          xmlns:xlink="http://www.w3.org/1999/xlink"
          class="pad"
          id="pad"
-    >
-    <image x=0 y=0 xlink:href="../assets/5/5440.png" width=500 height=500 stroke=null></image>
-    </svg>
+      >
+        <image id="bgImage" width=512 height=512 stroke=null></image>
+      </svg>
+    </div>
+    <div class="righthalf">
+      <span id="status"></span>
+      <br/><br/>
+      <input type="text" id="char" />
+      <input type="button" id="load" value="Load Asset" />
+      <br/><br/>
+      <input type="button" value="Mark" id="mark" />
+      <input type="button" value="Move" id="move" />
+      <input type="button" value="Delete" id="del" />
+    </div>
+
     <script src="editor.js" type="text/javascript"></script>
   </body>
 </html>

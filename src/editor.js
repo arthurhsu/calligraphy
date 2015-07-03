@@ -1,9 +1,14 @@
-/*
+/**
+ * @license
+ * Copyright 2015 Arthur Hsu. Distributed under Creative Commons License.
+ *
  * Cubic Bezier computation courtesy of
  * http://www.particleincell.com/2012/bezier-splines/ 
  */
+(function() {
 
-var W = 500;  // width of SVG canvas
+
+var W = 512;  // width of SVG canvas
 var V = [];  // vertices
 var S = [];  // splines
 
@@ -11,25 +16,11 @@ function SVG(tag) {
   return document.createElementNS('http://www.w3.org/2000/svg', tag);
 }
 
-// Draw box for percentile
-function guideBox(pct) {
-  var l = W * (100 - pct) / 200;
-  var r = W - l;
-  var command = 'M' + l + ' ' + l + 'L' + [r, l, r, r, l, r, l, l].join(' ');
-  return $(SVG('path'))
-      .attr('id', 'rc' + pct)
-      .attr('fill', 'none')
-      .attr('stroke', 'red')
-      .attr('stroke-dasharray', '5,5')
-      .attr('d', command)
-      .appendTo('#pad');
-}
-
 // Draw a dot
 function drawDot(x, y) {
   $(SVG('circle'))
     .attr('id', 'c' + V.length)
-    .attr('r', 6)
+    .attr('r', 8)
     .attr('cx', x)
     .attr('cy', y)
     .attr('fill', 'none')
@@ -41,7 +32,7 @@ function drawDot(x, y) {
 // Creates path string for SVG cubic path element
 function path(x1, y1, px1, py1, px2, py2, x2, y2) {
   return 'M ' + x1 + ' ' + y1 + ' C ' + 
-      [px1, py1, px2, py2, x2, y2].join(' ');
+      [px1.toFixed(2), py1.toFixed(2), px2.toFixed(2), py2.toFixed(2), x2, y2].join(' ');
 }
 
 // Update splines
@@ -118,8 +109,9 @@ function addPath() {
     .attr('id', 's' + S.length)
     .attr('fill', 'none')
     .attr('stroke', 'green')
-    .attr('stroke-width', 6)
-    .appendTo('#pad');
+    .attr('stroke-width', 16)
+    .attr('stroke-linecap', 'round')
+    .insertBefore('#c0');
   S.push(s);
 }
 
@@ -137,12 +129,69 @@ function mdHandler(e) {
   }
 }
 
-$(function() {
+// Draw box for percentile
+function guideBox(pct) {
+  var l = W * (100 - pct) / 200;
+  var r = W - l;
+  var command = 'M' + l + ' ' + l + ' L' + [r, l, r, r, l, r, l, l].join(' ');
+  return $(SVG('path'))
+      .attr('id', 'rc' + pct)
+      .attr('fill', 'none')
+      .attr('stroke', 'red')
+      .attr('stroke-dasharray', '5,5')
+      .attr('d', command)
+      .appendTo('#pad');
+}
+
+function guideLine(x1, y1, x2, y2) {
+  $(SVG('line'))
+      .attr('x1', x1)
+      .attr('y1', y1)
+      .attr('x2', x2)
+      .attr('y2', y2)
+      .attr('stroke', 'red')
+      .attr('stroke-dasharray', '5,5')
+      .appendTo('#pad');
+}
+
+function setUpGuides() {
   guideBox(90);
   guideBox(80);
   guideBox(75);
+  guideBox(50);
+  guideLine(0, W / 2, W, W / 2);
+  guideLine(W / 2, 0, W / 2, W);
+  guideLine(0, 0, W, W);
+  guideLine(W, 0, 0, W);
+}
 
+// Load asset from github
+function loadAsset() {
+  var code = $('#char').val().charCodeAt(0).toString(16).toUpperCase();
+  var path = '../../assets/' + code.slice(0, 1) + '/' + code + '.png';
+  var image = document.getElementById('bgImage');
+  image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', path);
+}
+
+// Delete current stroke
+function deleteStroke() {
+  var pad = document.getElementById('pad');
+  for (var i = 0; i < V.length; ++i) {
+    $('#c' + i).remove();
+  }
+  for (var i = 0; i < S.length; ++i) {
+    $('#s' + i).remove();
+  }
+  V = [];
+  S = [];
+}
+
+$(function() {
+  setUpGuides();
   $('#pad').mousedown(mdHandler);
+  $('#load').click(loadAsset);
+  $('#del').click(deleteStroke);
 });
 
 
+})();

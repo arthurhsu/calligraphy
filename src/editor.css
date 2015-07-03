@@ -1,0 +1,22 @@
+.pad {
+  border: 1px solid red;
+  width: 512px;
+  height: 512px;
+}
+
+div {
+  display: inline-block;
+}
+
+.lefthalf {
+  float: left;
+  width: 512px;
+  height: 512px;
+  padding: 0px;
+  margin: 0px;
+}
+
+.righthalf {
+  width: calc(100% - 512px);
+  height: 512px;
+}
