@@ -27,3 +27,25 @@ div {
   height: 512px;
   padding: 10px;
 }
+
+.preview101 {
+  width: 101px;
+  height: 101px;
+}
+
+.preview101 > svg {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+}
+
+.preview202 {
+  width: 202px;
+  height: 202px;
+}
+
+.preview202 > svg {
+  width: 100%;
+  height: 100%;
+  padding: 0;
+}

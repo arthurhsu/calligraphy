@@ -7,13 +7,13 @@
  */
 (function() {
 
-
 var W = 512;  // width of SVG canvas
 var V = [];  // vertices
 var S = [];  // splines
-var G = [];  // strokes
+var G = 0;  // stroke number
 var C = -1;  // Current node index
 var x0, y0, cx, cy;
+var code;
 
 function SVG(tag) {
   return document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -218,7 +218,8 @@ function nextMove() {
 // Load asset from github
 function loadAsset() {
   stopMoving();
-  var code = $('#char').val().charCodeAt(0).toString(16).toUpperCase();
+  $('#downloadLink').attr('href', '');
+  code = $('#char').val().charCodeAt(0).toString(16).toUpperCase();
   var path = '../../assets/' + code.slice(0, 1) + '/' + code + '.png';
   var image = document.getElementById('bgImage');
   image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', path);
@@ -260,26 +261,60 @@ function adjustStroke() {
 function addStroke() {
   stopMoving();
 
-  var group = SVG('g');
-  var gid = 'g' + G.length;
-  $(group).attr('id', gid).appendTo('#pad');
-  G.push(document.getElementById('#' + gid));
-  for (var i = 0; i < S.length; ++i) {
-    var s = SVG('path');
-    $(s)
-        .attr('fill', 'none')
-        .attr('stroke', 'brown')
-        .attr('stroke-width', 16)
-        .attr('stroke-linecap', 'round')
-        .attr('d', S[i].getAttributeNS(null, 'd'))
-        .appendTo('#' + gid);
-  }
+  var addToGroup = function(container, idPrefix, color) {
+    var group = SVG('g');
+    var gid = idPrefix + G;
+    $(group).attr('id', gid);
+    $(group).appendTo(container);
+    for (var i = 0; i < S.length; ++i) {
+      var s = SVG('path');
+      $(s)
+          .attr('fill', 'none')
+          .attr('stroke', color)
+          .attr('stroke-width', 16)
+          .attr('stroke-linecap', 'round')
+          .attr('d', S[i].getAttributeNS(null, 'd'))
+          .appendTo('#' + gid);
+    }
+  };
+  addToGroup('#pad', 'g', 'brown');
+  addToGroup('#preview1', 'a', 'blue');
+  addToGroup('#preview2', 'b', 'blue');
+  G++;
   deleteStroke();
 }
+
+var SVGHEADER =
+    '<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 512 512">' +
+    '<metadata><rdf:RDF xmlns:cc="http://web.resource.org/cc/" ' +
+    'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">' +
+    '<cc:work rdf:about="">' +
+    '<cc:license rdf:resource=' +
+    '"https://github.com/arthurhsu/calligraphy/blob/master/LICENSE"/>' +
+    '</cc:work></rdf:RDF></metadata>';
 
 // Save the character
 function saveAsset() {
   stopMoving();
+
+  var contents =
+    SVGHEADER +
+    '<title>' + $('#char').val() + '</title>' +
+    document.getElementById('preview2').innerHTML +
+    '</svg>';
+  $('#downloadLink').attr('href', 'data:text/plain;charset=utf-8,' +
+    encodeURIComponent(contents));
+  $('#downloadLink').attr('download', code + '.svg');
+}
+
+// Remove last stroke
+function undoStroke() {
+  if (G > 0) {
+    G--;
+    $('#g' + G).remove();
+    $('#a' + G).remove();
+    $('#b' + G).remove();
+  }
 }
 
 $(function() {
@@ -290,6 +325,7 @@ $(function() {
   $('#add').click(addStroke);
   $('#del').click(deleteStroke);
   $('#save').click(saveAsset);
+  $('#undo').click(undoStroke);
 });
 
 
