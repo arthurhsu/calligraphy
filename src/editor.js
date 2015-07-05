@@ -11,6 +11,7 @@
 var W = 512;  // width of SVG canvas
 var V = [];  // vertices
 var S = [];  // splines
+var G = [];  // strokes
 var C = -1;  // Current node index
 var x0, y0, cx, cy;
 
@@ -138,15 +139,12 @@ function startMoving(e) {
     y0 = e.clientY;
     C = -1;
     for (var i = 0; i < V.length; ++i) {
-      console.log(V[i][0] + 8, V[i][0] - 8, V[i][1] + 8, V[i][0] - 8);
       if (x0 <= V[i][0] + 16 && x0 >= V[i][0] - 16 &&
           y0 <= V[i][1] + 16 && y0 >= V[i][1] - 16) {
         C = i;
         break;
       }
     }
-    console.log('circle index: ', C);
-    console.log(V);
     if (C != -1) {
       node = document.getElementById('c' + C);
       $('#pad').on('mousemove', moveNode);
@@ -206,6 +204,7 @@ function stopMoving() {
   C = -1;
   $('#pad').off('mousemove');
   $('#pad').off('mouseup');
+  $('#pad').off('mousedown');
   $('#pad').on('mousedown', mdHandlerMark);
   $('#move').val('Move');
 }
@@ -249,6 +248,7 @@ function adjustStroke() {
   if ($('#move').val() == 'Move') {
     $('#pad').off('mousedown');
     $('#pad').on('mousedown', startMoving);
+    $('#pad').off('mouseup');
     $('#pad').on('mouseup', nextMove);
     $('#move').val('Mark');
   } else {
@@ -259,6 +259,22 @@ function adjustStroke() {
 // Add stroke
 function addStroke() {
   stopMoving();
+
+  var group = SVG('g');
+  var gid = 'g' + G.length;
+  $(group).attr('id', gid).appendTo('#pad');
+  G.push(document.getElementById('#' + gid));
+  for (var i = 0; i < S.length; ++i) {
+    var s = SVG('path');
+    $(s)
+        .attr('fill', 'none')
+        .attr('stroke', 'brown')
+        .attr('stroke-width', 16)
+        .attr('stroke-linecap', 'round')
+        .attr('d', S[i].getAttributeNS(null, 'd'))
+        .appendTo('#' + gid);
+  }
+  deleteStroke();
 }
 
 // Save the character
