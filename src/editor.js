@@ -171,6 +171,11 @@ function loadAsset() {
   var path = '../../assets/' + code.slice(0, 1) + '/' + code + '.png';
   var image = document.getElementById('bgImage');
   image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', path);
+  image = $('#bgImage');
+  image.attr('x', $('#px').val());
+  image.attr('y', $('#py').val());
+  image.attr('width', $('#width').val());
+  image.attr('height', $('#height').val());
 }
 
 // Delete current stroke

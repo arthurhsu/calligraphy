@@ -11,18 +11,23 @@
          class="pad"
          id="pad"
       >
-        <image id="bgImage" width=512 height=512 stroke=null></image>
+        <image id="bgImage" x=0 y=0 width=512 height=512 stroke=null></image>
       </svg>
     </div>
     <div class="righthalf">
       <span id="status"></span>
       <br/><br/>
-      <input type="text" id="char" />
+      char <input type="text" id="char" size="1" />
+      x <input type="text" id="px" size="1" value="0" />
+      y <input type="text" id="py" size="1" value="0" />
+      w <input type="text" id="width" size="1" value="512" />
+      h <input type="text" id="height" size="1" value="512" />
       <input type="button" id="load" value="Load Asset" />
       <br/><br/>
-      <input type="button" value="Mark" id="mark" />
       <input type="button" value="Move" id="move" />
+      <input type="button" value="Add" id="add" />
       <input type="button" value="Delete" id="del" />
+      <input type="button" value="Save" id="save" />
     </div>
 
     <script src="editor.js" type="text/javascript"></script>
