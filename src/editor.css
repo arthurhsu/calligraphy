@@ -4,6 +4,12 @@
   height: 512px;
 }
 
+.preview {
+  border: 1px solid green;
+  width: 202px;
+  height: 202px;
+}
+
 div {
   display: inline-block;
 }
@@ -17,6 +23,7 @@ div {
 }
 
 .righthalf {
-  width: calc(100% - 512px);
+  width: 512px;
   height: 512px;
+  padding: 10px;
 }

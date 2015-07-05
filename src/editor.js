@@ -11,6 +11,8 @@
 var W = 512;  // width of SVG canvas
 var V = [];  // vertices
 var S = [];  // splines
+var C = -1;  // Current node index
+var x0, y0, cx, cy;
 
 function SVG(tag) {
   return document.createElementNS('http://www.w3.org/2000/svg', tag);
@@ -25,7 +27,7 @@ function drawDot(x, y) {
     .attr('cy', y)
     .attr('fill', 'none')
     .attr('stroke', 'red')
-    .attr('stroke-width', 1)
+    .attr('stroke-width', 3)
     .appendTo('#pad');
 }
 
@@ -115,8 +117,8 @@ function addPath() {
   S.push(s);
 }
 
-// mousedown event handler
-function mdHandler(e) {
+// mousedown event handler for mark mode
+function mdHandlerMark(e) {
   if (e.button == 0) {  // left button
     drawDot(e.offsetX, e.offsetY);
     V.push([e.offsetX, e.offsetY]);
@@ -127,6 +129,40 @@ function mdHandler(e) {
       updateSplines();
     }
   }
+}
+
+// mousedown event handler for move mode
+function startMoving(e) {
+  if (e.button == 0) {
+    x0 = e.clientX;
+    y0 = e.clientY;
+    C = -1;
+    for (var i = 0; i < V.length; ++i) {
+      console.log(V[i][0] + 8, V[i][0] - 8, V[i][1] + 8, V[i][0] - 8);
+      if (x0 <= V[i][0] + 16 && x0 >= V[i][0] - 16 &&
+          y0 <= V[i][1] + 16 && y0 >= V[i][1] - 16) {
+        C = i;
+        break;
+      }
+    }
+    console.log('circle index: ', C);
+    console.log(V);
+    if (C != -1) {
+      node = document.getElementById('c' + C);
+      $('#pad').on('mousemove', moveNode);
+    }
+  }
+}
+
+// Updates dragged circle and recomputes splines
+function moveNode(e) {
+  cx = e.clientX;
+  cy = e.clientY;
+
+  node.setAttributeNS(null, 'cx', cx);
+  node.setAttributeNS(null, 'cy', cy);
+  V[C] = [cx, cy];
+  updateSplines();
 }
 
 // Draw box for percentile
@@ -165,8 +201,24 @@ function setUpGuides() {
   guideLine(W, 0, 0, W);
 }
 
+// Exit move mode and return to mark mode
+function stopMoving() {
+  C = -1;
+  $('#pad').off('mousemove');
+  $('#pad').off('mouseup');
+  $('#pad').on('mousedown', mdHandlerMark);
+  $('#move').val('Move');
+}
+
+// Exit move mode and return to move mode again
+function nextMove() {
+  C = -1;
+  $('#pad').off('mousemove');
+}
+
 // Load asset from github
 function loadAsset() {
+  stopMoving();
   var code = $('#char').val().charCodeAt(0).toString(16).toUpperCase();
   var path = '../../assets/' + code.slice(0, 1) + '/' + code + '.png';
   var image = document.getElementById('bgImage');
@@ -180,6 +232,7 @@ function loadAsset() {
 
 // Delete current stroke
 function deleteStroke() {
+  stopMoving();
   var pad = document.getElementById('pad');
   for (var i = 0; i < V.length; ++i) {
     $('#c' + i).remove();
@@ -191,11 +244,36 @@ function deleteStroke() {
   S = [];
 }
 
+// Adjust current stroke
+function adjustStroke() {
+  if ($('#move').val() == 'Move') {
+    $('#pad').off('mousedown');
+    $('#pad').on('mousedown', startMoving);
+    $('#pad').on('mouseup', nextMove);
+    $('#move').val('Mark');
+  } else {
+    stopMoving();
+  }
+}
+
+// Add stroke
+function addStroke() {
+  stopMoving();
+}
+
+// Save the character
+function saveAsset() {
+  stopMoving();
+}
+
 $(function() {
   setUpGuides();
-  $('#pad').mousedown(mdHandler);
+  $('#pad').on('mousedown', mdHandlerMark);
   $('#load').click(loadAsset);
+  $('#move').click(adjustStroke);
+  $('#add').click(addStroke);
   $('#del').click(deleteStroke);
+  $('#save').click(saveAsset);
 });
 
 
