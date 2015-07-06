@@ -1,0 +1,1 @@
+for %%a in (d:\home\downloads\*.svg) do cmd /c call checkin_svg.bat %%~nxa
