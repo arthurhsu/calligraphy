@@ -220,7 +220,7 @@ function loadAsset() {
   stopMoving();
   $('#downloadLink').attr('href', '');
   code = $('#char').val().charCodeAt(0).toString(16).toUpperCase();
-  var path = '../../assets/' + code.slice(0, 1) + '/' + code + '.png';
+  var path = '../assets/' + code.slice(0, 1) + '/' + code + '.png';
   var image = document.getElementById('bgImage');
   image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', path);
   image = $('#bgImage');
@@ -285,7 +285,8 @@ function addStroke() {
 }
 
 var SVGHEADER =
-    '<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 512 512">' +
+    '<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 512 512">';
+var SVGMETA =
     '<metadata><rdf:RDF xmlns:cc="http://web.resource.org/cc/" ' +
     'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">' +
     '<cc:work rdf:about="">' +
@@ -300,6 +301,7 @@ function saveAsset() {
   var contents =
     SVGHEADER +
     '<title>' + $('#char').val() + '</title>' +
+    SVGMETA +
     document.getElementById('preview2').innerHTML +
     '</svg>';
   $('#downloadLink').attr('href', 'data:text/plain;charset=utf-8,' +
