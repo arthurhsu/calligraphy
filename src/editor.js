@@ -261,21 +261,29 @@ function adjustStroke() {
 function addStroke() {
   stopMoving();
 
-  var addToGroup = function(container, idPrefix, color) {
-    var group = SVG('g');
-    var gid = idPrefix + G;
-    $(group).attr('id', gid);
-    $(group).appendTo(container);
+  var extractPath = function() {
+    var vector = [];
     for (var i = 0; i < S.length; ++i) {
-      var s = SVG('path');
-      $(s)
-          .attr('fill', 'none')
-          .attr('stroke', color)
-          .attr('stroke-width', 16)
-          .attr('stroke-linecap', 'round')
-          .attr('d', S[i].getAttributeNS(null, 'd'))
-          .appendTo('#' + gid);
+      var d = S[i].getAttributeNS(null, 'd');
+      if (i > 0) {
+        vector.push(d.slice(d.indexOf('C ') + 2));
+      } else {
+        vector.push(d);
+      }
     }
+    return vector.join(' ');
+  };
+
+  var addToGroup = function(container, idPrefix, color) {
+    var s = SVG('path');
+    $(s)
+        .attr('id', idPrefix + G)
+        .attr('fill', 'none')
+        .attr('stroke', color)
+        .attr('stroke-width', 16)
+        .attr('stroke-linecap', 'round')
+        .attr('d', extractPath())
+        .appendTo(container);
   };
   addToGroup('#pad', 'g', 'brown');
   addToGroup('#preview1', 'a', 'blue');
@@ -298,11 +306,15 @@ var SVGMETA =
 function saveAsset() {
   stopMoving();
 
+  // Remove ids before saving
+  var svgContents =
+      document.getElementById('preview2').innerHTML.replace(/ id="(\w+)"/g, '');
+
   var contents =
     SVGHEADER +
     '<title>' + $('#char').val() + '</title>' +
     SVGMETA +
-    document.getElementById('preview2').innerHTML +
+    svgContents +
     '</svg>';
   $('#downloadLink').attr('href', 'data:text/plain;charset=utf-8,' +
     encodeURIComponent(contents));
