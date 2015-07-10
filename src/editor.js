@@ -293,6 +293,7 @@ function addStroke() {
 }
 
 var SVGHEADER =
+    '<?xml-stylesheet type="text/css" href="hsu.css"?>' +
     '<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 512 512">';
 var SVGMETA =
     '<metadata><rdf:RDF xmlns:cc="http://web.resource.org/cc/" ' +
@@ -306,9 +307,12 @@ var SVGMETA =
 function saveAsset() {
   stopMoving();
 
-  // Remove ids before saving
   var svgContents =
-      document.getElementById('preview2').innerHTML.replace(/ id="(\w+)"/g, '');
+      document.getElementById('preview2').innerHTML;
+  svgContents = svgContents.replace(/ id="(\w+)"/g, '');
+  svgContents = svgContents.replace(
+      /fill="none" stroke="blue" stroke-width="16" stroke-linecap="round"/g,
+      'class="hsu"');
 
   var contents =
     SVGHEADER +
