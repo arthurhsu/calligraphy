@@ -3,7 +3,7 @@
  * Copyright 2015 Arthur Hsu. Distributed under Creative Commons License.
  *
  * Cubic Bezier computation courtesy of
- * http://www.particleincell.com/2012/bezier-splines/ 
+ * http://www.particleincell.com/2012/bezier-splines/
  */
 (function() {
 
@@ -17,6 +17,44 @@ var code;
 
 function SVG(tag) {
   return document.createElementNS('http://www.w3.org/2000/svg', tag);
+}
+
+class Guides {
+  constructor() {
+    this.box(90);
+    this.box(80);
+    this.box(75);
+    this.box(50);
+    this.line(0, W / 2, W, W / 2);
+    this.line(W / 2, 0, W / 2, W);
+    this.line(0, 0, W, W);
+    this.line(W, 0, 0, W);
+  }
+
+  // Draw box for percentile
+  box(pct) {
+    const l = W * (100 - pct) / 200;
+    const r = W - l;
+    const command = `M${l} ${l} L${[r, l, r, r, l, r, l, l].join(' ')}`;
+    return $(SVG('path'))
+        .attr('id', 'rc' + pct)
+        .attr('fill', 'none')
+        .attr('stroke', 'red')
+        .attr('stroke-dasharray', '5,5')
+        .attr('d', command)
+        .appendTo('#pad');
+  }
+
+  line(x1, y1, x2, y2) {
+    $(SVG('line'))
+        .attr('x1', x1)
+        .attr('y1', y1)
+        .attr('x2', x2)
+        .attr('y2', y2)
+        .attr('stroke', 'red')
+        .attr('stroke-dasharray', '5,5')
+        .appendTo('#pad');
+  }
 }
 
 // Draw a dot
@@ -34,7 +72,7 @@ function drawDot(x, y) {
 
 // Creates path string for SVG cubic path element
 function path(x1, y1, px1, py1, px2, py2, x2, y2) {
-  return 'M ' + x1 + ' ' + y1 + ' C ' + 
+  return 'M ' + x1 + ' ' + y1 + ' C ' +
       [px1.toFixed(2), py1.toFixed(2), px2.toFixed(2), py2.toFixed(2), x2, y2].join(' ');
 }
 
@@ -71,7 +109,7 @@ function computeControlPoints(K) {
 	b[0] = 2;
 	c[0] = 1;
 	r[0] = K[0]+2*K[1];
-	
+
 	// internal segments
 	for (var i = 1; i < n - 1; i++)	{
 		a[i] = 1;
@@ -79,25 +117,25 @@ function computeControlPoints(K) {
 		c[i] = 1;
 		r[i] = 4 * K[i] + 2 * K[i + 1];
 	}
-			
+
 	// right segment
 	a[n - 1] = 2;
 	b[n - 1] = 7;
 	c[n - 1] = 0;
 	r[n - 1] = 8 * K[n - 1] + K[n];
-	
+
 	// solves Ax=b with the Thomas algorithm (from Wikipedia)
 	for (var i = 1; i < n; i++) {
 		var m = a[i] / b[i - 1];
 		b[i] = b[i] - m * c[i - 1];
 		r[i] = r[i] - m * r[i - 1];
 	}
-  
+
   p1[n - 1] = r[n - 1] / b[n - 1];
 	for (var i = n - 2; i >= 0; --i) {
 		p1[i] = (r[i] - c[i] * p1[i + 1]) / b[i];
   }
-		
+
 	// we have p1, now compute p2
 	for (var i = 0; i < n - 1; i++) {
 		p2[i] = 2 * K[i + 1] - p1[i + 1];
@@ -161,42 +199,6 @@ function moveNode(e) {
   node.setAttributeNS(null, 'cy', cy);
   V[C] = [cx, cy];
   updateSplines();
-}
-
-// Draw box for percentile
-function guideBox(pct) {
-  var l = W * (100 - pct) / 200;
-  var r = W - l;
-  var command = 'M' + l + ' ' + l + ' L' + [r, l, r, r, l, r, l, l].join(' ');
-  return $(SVG('path'))
-      .attr('id', 'rc' + pct)
-      .attr('fill', 'none')
-      .attr('stroke', 'red')
-      .attr('stroke-dasharray', '5,5')
-      .attr('d', command)
-      .appendTo('#pad');
-}
-
-function guideLine(x1, y1, x2, y2) {
-  $(SVG('line'))
-      .attr('x1', x1)
-      .attr('y1', y1)
-      .attr('x2', x2)
-      .attr('y2', y2)
-      .attr('stroke', 'red')
-      .attr('stroke-dasharray', '5,5')
-      .appendTo('#pad');
-}
-
-function setUpGuides() {
-  guideBox(90);
-  guideBox(80);
-  guideBox(75);
-  guideBox(50);
-  guideLine(0, W / 2, W, W / 2);
-  guideLine(W / 2, 0, W / 2, W);
-  guideLine(0, 0, W, W);
-  guideLine(W, 0, 0, W);
 }
 
 // Exit move mode and return to mark mode
@@ -335,9 +337,78 @@ function undoStroke() {
   }
 }
 
+function removeRaceHandlers() {
+  $('#pad').off('mousedown');
+  // $('#pad').off('touchstart');
+}
+
+class MouseHandler {
+  constructor(e) {
+    $('#pad').on('mouseup', this.mouseup.bind(this));
+    $('#pad').on('mousemove', this.mousemove.bind(this));
+    $('#pad').on('mousedown', this.mousedown.bind(this));
+    this.tracking = false;
+    this.lastX = undefined;
+    this.lastY = undefined;
+    this.mousedown(e);
+  }
+
+  mouseup(e) {
+    if (e.button == 0) {
+      drawDot(e.offsetX, e.offsetY);
+      V.push([e.offsetX, e.offsetY]);
+    }
+    this.tracking = false;
+    if (V.length > 1) {
+      while (S.length < V.length - 1) {
+        addPath();
+      }
+      updateSplines();
+    }
+  }
+
+  mousemove(e) {
+    if (this.tracking) {
+      // pick points have at least delta of 20pt
+      const ptX = e.offsetX;
+      const ptY = e.offsetY;
+      if (Math.max(Math.abs(ptX - this.lastX), Math.abs(ptY - this.lastY)) > 20) {
+        drawDot(ptX, ptY);
+        V.push([ptX, ptY]);
+        this.lastX = ptX;
+        this.lastY = ptY;
+      }
+    }
+  }
+
+  mousedown(e) {
+    if (e.button == 0) {  // left button
+      this.tracking = true;
+      drawDot(e.offsetX, e.offsetY);
+      V.push([e.offsetX, e.offsetY]);
+      this.lastX = e.offsetX;
+      this.lastY = e.offsetY;
+    }
+  }
+}
+
+function useMouse(e) {
+  removeRaceHandlers();
+  new MouseHandler(e);
+}
+
+/*
+function useTouch(e) {
+  removeRaceHandlers();
+  new TouchHandler(e);
+}
+*/
+
 $(function() {
-  setUpGuides();
-  $('#pad').on('mousedown', mdHandlerMark);
+  new Guides();
+  // $('#pad').on('mousedown', mdHandlerMark);
+  $('#pad').on('mousedown', useMouse);
+  // $('#pad').on('touchstart', useTouch);
   $('#load').click(loadAsset);
   $('#move').click(adjustStroke);
   $('#add').click(addStroke);
