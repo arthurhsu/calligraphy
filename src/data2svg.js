@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-function toSVG(filePath, code, color = 'blue', width = 16) {
+function toSVG(filePath, code, glyph = 0, color = 'blue', width = 16) {
   const json = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   let contents = [];
   contents.push(
@@ -23,7 +23,7 @@ function toSVG(filePath, code, color = 'blue', width = 16) {
       `path{stroke:${color};fill:none;stroke-width:${width};` +
       'stroke-linecap:round}');
   contents.push('</style>');
-  json.strokes.forEach(s => {
+  json.glyphs[glyph].strokes.forEach(s => {
     contents.push(`<path d="${s}"></path>`);
   });
   contents.push('</svg>');
@@ -31,14 +31,14 @@ function toSVG(filePath, code, color = 'blue', width = 16) {
 }
 
 function main() {
-  if (process.argc < 3 || process.argc > 5) {
-    console.error('Usage: data2svg <Unicode> [color] [stroke width]');
+  if (process.argc < 3 || process.argc > 6) {
+    console.error('Usage: data2svg <Unicode> [glyph] [color] [stroke width]');
   }
   const code = process.argv[2].toString();
   const filePath = path.resolve(
       `${__dirname}/../data/${code.substring(0, 1)}/${code}.json`);
   if (fs.existsSync(filePath)) {
-    toSVG(filePath, code, process.argv[3], process.argv[4]);
+    toSVG(filePath, code, process.argv[3], process.argv[4], process.argv[5]);
   }
 }
 
