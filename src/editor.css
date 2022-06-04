@@ -49,3 +49,29 @@ div {
   height: 100%;
   padding: 0;
 }
+
+.editbuttons {
+  padding: 0;
+}
+
+.editbuttons [type=radio] {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.editbuttons [type=radio] + img {
+  outline: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+}
+
+.editbuttons [type=radio]:checked + img {
+  outline: 2px solid #f00;
+}
+
+.functions {
+  padding: 0
+}

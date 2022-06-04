@@ -32,9 +32,11 @@ function setupCanvasHandlers(tag) {
   $(tag).on('mousedown', handler.mousedown.bind(handler));
 }
 
-function setupButtonHandlers(tagToggle) {
-  const handler = ButtonHandler.get();
-  $(tagToggle).click(handler.modeToggle.bind(handler, tagToggle));
+function setupRadioHandlers(name) {
+  $(`input:radio[name=${name}]`).click(() => {
+    const val = $(`input:radio[name=${name}]:checked`).val();
+    EditorState.state = val;
+  });
 }
 
 class Guides {
@@ -120,16 +122,14 @@ class Glyph {
 }
 
 class Stroke {
-  constructor(tag) {
+  constructor(tag, id = -1) {
+    this.id = (id == -1) ? Glyph.get().getNumberOfStrokes() : id;
     this.vertices = [];  // vertices
+    this.vertexIds = [];  // ids for vertices
     this.splines = [];  // splines
+    this.splineIds = [];  // ids for splines
     this.tag = tag;  // canvas selector tag
     this.unselectDot();
-  }
-
-  addPoint(x, y) {
-    // TODO: check if the point existed
-    this.vertices.push([x, y]);
   }
 
   isEmpty() {
@@ -138,8 +138,9 @@ class Stroke {
 
   // Draw a dot
   drawDot(x, y) {
+    const id = `S${this.id}c${this.vertices.length}`;
     $(SVG('circle'))
-      .attr('id', 'c' + this.vertices.length)
+      .attr('id', id)
       .attr('r', 8)
       .attr('cx', x)
       .attr('cy', y)
@@ -147,18 +148,22 @@ class Stroke {
       .attr('stroke', 'red')
       .attr('stroke-width', 3)
       .appendTo(this.tag);
+    this.vertices.push([x, y]);
+    this.vertexIds.push(id);
   }
 
   addPath() {
+    const id = `S${this.id}s${this.splines.length}`;
     let s = SVG('path');
     $(s)
-      .attr('id', 's' + this.splines.length)
+      .attr('id', id)
       .attr('fill', 'none')
       .attr('stroke', 'green')
       .attr('stroke-width', 16)
       .attr('stroke-linecap', 'round')
-      .insertBefore('#c0');
+      .insertBefore('#S0c0');
     this.splines.push(s);
+    this.splineIds.push(id);
   }
 
   // Compute control points
@@ -267,7 +272,7 @@ class Stroke {
   }
 
   moveDot(x, y) {
-    const node = document.getElementById(`c${this.selected}`);
+    const node = document.getElementById(this.vertexIds[this.selected]);
     node.setAttributeNS(null, 'cx', x);
     node.setAttributeNS(null, 'cy', y);
     this.vertices[this.selected] = [x, y];
@@ -275,29 +280,17 @@ class Stroke {
   }
 
   removeDot() {
-    if (this.selected) {
+    if (this.selected && this.selected != this.vertices.length - 1) {
+      const vId = this.vertexIds[this.selected];
+      const sId = this.splineIds[this.selected];
+      document.getElementById(vId).remove();
+      document.getElementById(sId).remove();
       this.vertices.splice(this.selected, 1);
-      document.getElementById(`c${this.selected}`).remove();
+      this.vertexIds.splice(this.selected, 1);
+      this.splines.splice(this.selected, 1);
       this.updateSplines();
       this.unselectDot();
     }
-  }
-}
-
-class ButtonHandler {
-  static instance = undefined;
-
-  static get() {
-    if (ButtonHandler.instance == undefined) {
-      ButtonHandler.instance = new ButtonHandler();
-    }
-    return ButtonHandler.instance;
-  }
-
-  modeToggle(tag, e) {
-    EditorState.state = (EditorState.state == EditorState.DRAW) ?
-        EditorState.TUNE : EditorState.DRAW;
-    $(tag).text(EditorState.state == EditorState.DRAW ? 'Draw' : 'Tune');
   }
 }
 
@@ -326,6 +319,8 @@ class MouseHandler {
   }
 
   mouseup(e) {
+    if (e.button != 0) return;
+
     if (EditorState.state == EditorState.DRAW) {
       this.drawMouseup(e);
     } else {
@@ -334,10 +329,7 @@ class MouseHandler {
   }
 
   drawMouseup(e) {
-    if (e.button == 0) {
-      this.currentStroke.drawDot(e.offsetX, e.offsetY);
-      this.currentStroke.addPoint(e.offsetX, e.offsetY);
-    }
+    this.currentStroke.drawDot(e.offsetX, e.offsetY);
     this.tracking = false;
     if (!this.currentStroke.isEmpty()) {
       this.currentStroke.finish();
@@ -366,7 +358,6 @@ class MouseHandler {
       const ptY = e.offsetY;
       if (Math.max(Math.abs(ptX - this.lastX), Math.abs(ptY - this.lastY)) > 20) {
         this.currentStroke.drawDot(ptX, ptY);
-        this.currentStroke.addPoint(ptX, ptY);
         this.lastX = ptX;
         this.lastY = ptY;
       }
@@ -380,6 +371,8 @@ class MouseHandler {
   }
 
   mousedown(e) {
+    if (e.button != 0) return;
+
     if (EditorState.state == EditorState.DRAW) {
       this.drawMousedown(e);
     } else {
@@ -388,23 +381,20 @@ class MouseHandler {
   }
 
   drawMousedown(e) {
-    if (e.button == 0) {  // left button
-      this.tracking = true;
-      this.ensureStroke();
-      this.currentStroke.drawDot(e.offsetX, e.offsetY);
-      this.currentStroke.addPoint(e.offsetX, e.offsetY);
-      this.lastX = e.offsetX;
-      this.lastY = e.offsetY;
-    }
+    this.tracking = true;
+    this.ensureStroke();
+    this.currentStroke.drawDot(e.offsetX, e.offsetY);
+    this.lastX = e.offsetX;
+    this.lastY = e.offsetY;
   }
 
   tuneMousedown(e) {
     const stroke = Glyph.get().getLastStroke();
-    if (e.button == 0) {  // left button
+    if (EditorState.state == EditorState.MOVE) {
       if (stroke.selectDot(e.clientX, e.clientY)) {
         this.tracking = true;
       }
-    } else if (e.button == 1) {  // middle button
+    } else if (EditorState.state == EditorState.DELETE) {
       if (stroke.selectDot(e.clientX, e.clientY)) {
         stroke.removeDot();
       }
@@ -413,7 +403,8 @@ class MouseHandler {
 }
 
 class EditorState {
-  static DRAW = 0;  // DRAW stroke
-  static TUNE = 1;  // TUNE stroke
+  static DRAW = 'draw';
+  static MOVE = 'move';
+  static DELETE = 'delete';
   static state = EditorState.DRAW;
 }

@@ -17,13 +17,51 @@
       <image id="bgImage" x=0 y=0 width=512 height=512 stroke=null></image>
     </svg>
   </div>
-  <button id="mode">Draw</button>
+  <div class="righthalf">
+    <div class="preview101">
+      <svg xmlns="http://www.w3.org/2000/svg"
+         xmlns:xlink="http://www.w3.org/1999/xlink"
+         class="preview"
+         id="preview1"
+         viewbox="0 0 512 512"
+      ></svg>
+    </div>
+    <br/>
+    <div class="preview202">
+      <svg xmlns="http://www.w3.org/2000/svg"
+         xmlns:xlink="http://www.w3.org/1999/xlink"
+         class="preview"
+         id="preview2"
+         viewbox="0 0 512 512"
+      ></svg>
+    </div>
+  </div>
+  <br/>
+  <div class="editbuttons">
+    <label>
+      <input type="radio" value="draw" name="edit" checked />
+      <img src="pen.png" alt="Draw">
+    </label>
+    &nbsp;
+    <label>
+      <input type="radio" value="move" name="edit" />
+      <img src="move.png" alt="Move">
+    </label>
+    <label>
+      <input type="radio" value="delete" name="edit" />
+      <img src="delete.png" alt="Delete">
+    </label>
+  </div>
+  <br/>
+  <div class="functions">
+
+  </div>
   <script>
     // onLoad
     (function() {
       new Guides('#pad', 512);
       setupCanvasHandlers('#pad');
-      setupButtonHandlers('#mode');
+      setupRadioHandlers('edit');
     })();
   </script>
 </body>
