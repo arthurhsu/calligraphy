@@ -51,17 +51,26 @@
       <input type="radio" value="delete" name="edit" />
       <img src="delete.png" alt="Delete">
     </label>
+    <input id="undo" type="button" value="Undo" />
+    <input id="confirm" type="button" value="Confirm" />
+    <input id="cancel" type="button" value="Cancel" />
   </div>
   <br/>
   <div class="functions">
-
+    <input id="char" type="text" />
+    <input id="setChar" type="button" value="Set Char" />
+    <br/>
+    <input id="load" type="button" value="Load" />
+    <input id="export" type="button" value="Export" />
+    <input id="new" type="button" value="New" />
   </div>
   <script>
     // onLoad
     (function() {
-      new Guides('#pad', 512);
       setupCanvasHandlers('#pad');
-      setupRadioHandlers('edit');
+      new Guides(512);
+      setupEditingHandlers('edit', '#undo', '#confirm', '#cancel');
+      setupFunctionHandlers('#char', '#setChar', '#load', '#export', '#new');
     })();
   </script>
 </body>

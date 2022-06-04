@@ -25,23 +25,91 @@ function SVG(tag) {
   return document.createElementNS('http://www.w3.org/2000/svg', tag);
 }
 
-function setupCanvasHandlers(tag) {
-  const handler = MouseHandler.get(tag);
-  $(tag).on('mouseup', handler.mouseup.bind(handler));
-  $(tag).on('mousemove', handler.mousemove.bind(handler));
-  $(tag).on('mousedown', handler.mousedown.bind(handler));
+function setupCanvasHandlers(main, preview1, preview2) {
+  Canvas.main = main;
+  Canvas.preview1 = preview1;
+  Canvas.preview2 = preview2;
+
+  MouseHandler.get().install();
 }
 
-function setupRadioHandlers(name) {
-  $(`input:radio[name=${name}]`).click(() => {
-    const val = $(`input:radio[name=${name}]:checked`).val();
-    EditorState.state = val;
+function setupEditingHandlers(name, undoBtn, confirmBtn, cancelBtn) {
+  EditingHandlers.get().install(name, undoBtn, confirmBtn, cancelBtn);
+}
+
+function setupFunctionHandlers(
+    textInput, submitBtn, loadBtn, exportBtn, newBtn) {
+  $(submitBtn).click(() => {
+    Glyph.get().setText($(textInput).val());
+  });
+
+  $(exportBtn).click(() => {
+    Glyph.get().export();
+  });
+
+  $(loadBtn).click(() => {
+    const text = $(textInput).val().trim();
+    Glyph.get().load(text.length ? text : undefined);
+  });
+
+  $(newBtn).click(() => {
+    if (!Glyph.get().saved && confirm('Abandon current glyph?')) {
+      Glyph.clear();
+      MouseHandler.get().clear();
+      EditingHandlers.get().clear();
+      document.getElementById(Canvas.main).replaceChildren();
+      document.getElementById(Canvas.preview1).replaceChildren();
+      document.getElementById(Canvas.preview2).replaceChildren();
+    }
   });
 }
 
+class Canvas {
+  static main;
+  static preview1;
+  static preview2;
+}
+
+class EditingHandlers {
+  static instance = undefined;
+  static get() {
+    if (EditingHandlers.instance === undefined) {
+      EditingHandlers.instance = new EditingHandlers();
+    }
+    return EditingHandlers.instance;
+  }
+
+  constructor() {
+    this.radioGroup = undefined;
+  }
+
+  clear() {
+    $(`input[name=${this.radioGroup}][value='draw']`).prop('checked', true);
+  }
+
+  install(name, undoBtn, confirmBtn, cancelBtn) {
+    $(`input:radio[name=${name}]`).click(() => {
+      const val = $(`input:radio[name=${name}]:checked`).val();
+      EditorState.state = val;
+    });
+    this.radioGroup = name;
+
+    $(undoBtn).click(() => {
+      // TODO: register undo handler
+    });
+
+    $(confirmBtn).click(() => {
+      // TODO: confirm
+    });
+
+    $(cancelBtn).click(() => {
+      // TODO: cancel
+    });
+  }
+}
+
 class Guides {
-  constructor(tag, width) {
-    this.tag = tag;
+  constructor(width) {
     this.box(width, 90);
     this.box(width, 80);
     this.box(width, 75);
@@ -63,7 +131,7 @@ class Guides {
         .attr('stroke', 'red')
         .attr('stroke-dasharray', '5,5')
         .attr('d', command)
-        .appendTo(this.tag);
+        .appendTo(Canvas.main);
   }
 
   line(x1, y1, x2, y2) {
@@ -74,7 +142,7 @@ class Guides {
         .attr('y2', y2)
         .attr('stroke', 'red')
         .attr('stroke-dasharray', '5,5')
-        .appendTo(this.tag);
+        .appendTo(Canvas.main);
   }
 }
 
@@ -83,6 +151,8 @@ class Glyph {
 
   constructor() {
     this.strokes = [];
+    this.text = undefined;
+    this.saved = true;
   }
 
   static get() {
@@ -92,12 +162,13 @@ class Glyph {
     return Glyph.instance;
   }
 
-  clear() {
+  static clear() {
     Glyph.instance = undefined;
   }
 
   addStroke(s) {
     this.strokes.push(s);
+    this.saved = false;
   }
 
   getNumberOfStrokes() {
@@ -119,17 +190,91 @@ class Glyph {
   removeLastStroke() {
     this.strokes.pop();
   }
+
+  getCode(s) {
+    if (s.length != 1) return;
+    return s.charCodeAt(0).toString(16).toUpperCase();
+  }
+
+  getPath(s) {
+    if (s.length != 1) return;
+    const code = this.getCode(s);
+    return `/data/${code.slice(0, 1)}/${code}.json`;
+  }
+
+  render(json) {
+    this.text = json.text;
+    // TODO: handle multiple glyphs
+
+    const g = json.glyphs[0];
+    this.strokes = g['rawstrokes'].map((s, i) => Stroke.deserialize(i, s));
+  }
+
+  load(text) {
+    if (text !== this.text && text !== undefined && this.text !== undefined) {
+      // TODO: FIXME: not good handling, need fix
+      alert('inconsistent char');
+      return;
+    }
+
+    const s = text === undefined ? this.text : text;
+    return fetch(this.getPath(s)).then(resp => {
+      if (resp.ok) {
+        this.render(resp.json());
+      }
+      return undefined;
+    }, this);
+  }
+
+  export() {
+    if (this.text === undefined) {
+      throw('no text associated');
+    }
+
+    // TODO: handle multi-glyph
+    let ret = {
+      'code': this.getCode(this.text),
+      'text': this.text,
+      'glyphs': [{'strokes': this.splines.map(s => s.serialize())}]
+    };
+
+    this.saved = true;
+  }
+
+  setText(s) {
+    if (s.length != 1) return;
+    if (this.text) {
+      throw('glyph is not empty');
+    }
+    this.text = s;
+    this.saved = false;
+  }
 }
 
 class Stroke {
-  constructor(tag, id = -1) {
+  constructor(id = -1) {
     this.id = (id == -1) ? Glyph.get().getNumberOfStrokes() : id;
     this.vertices = [];  // vertices
     this.vertexIds = [];  // ids for vertices
     this.splines = [];  // splines
     this.splineIds = [];  // ids for splines
-    this.tag = tag;  // canvas selector tag
     this.unselectDot();
+  }
+
+  static deserialize(id, json) {
+    const ret = new Stroke(id);
+    for (i = 0; i < json.dots.length; i += 2) {
+      ret.drawDot(x, y);
+    }
+    return ret;
+  }
+
+  serialize() {
+    // TODO: fix data2svg.js, data structure changed
+    return {
+      'dots': this.vertices,
+      'splines': this.splineIds.map(id => $(id).attr('d'))
+    }
   }
 
   isEmpty() {
@@ -147,7 +292,7 @@ class Stroke {
       .attr('fill', 'none')
       .attr('stroke', 'red')
       .attr('stroke-width', 3)
-      .appendTo(this.tag);
+      .appendTo(Canvas.main);
     this.vertices.push([x, y]);
     this.vertexIds.push(id);
   }
@@ -297,24 +442,33 @@ class Stroke {
 class MouseHandler {
   static instance = undefined;
 
-  static get(tag) {
+  static get() {
     if (MouseHandler.instance == undefined) {
-      MouseHandler.instance = new MouseHandler(tag);
+      MouseHandler.instance = new MouseHandler();
     }
     return MouseHandler.instance;
   }
 
-  constructor(tag, e) {
+  constructor() {
+    this.clear();
+  }
+
+  clear() {
     this.tracking = false;
     this.lastX = undefined;
     this.lastY = undefined;
     this.currentStroke = undefined;
-    this.tag = tag;
+  }
+
+  install() {
+    $(Canvas.main).on('mouseup', this.mouseup.bind(this));
+    $(Canvas.main).on('mousemove', this.mousemove.bind(this));
+    $(Canvas.main).on('mousedown', this.mousedown.bind(this));
   }
 
   ensureStroke() {
     if (this.currentStroke === undefined) {
-      this.currentStroke = new Stroke(this.tag);
+      this.currentStroke = new Stroke();
     }
   }
 
