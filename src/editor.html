@@ -16,6 +16,8 @@
     >
       <image id="bgImage" x=0 y=0 width=512 height=512 stroke=null></image>
     </svg>
+    <input id="xslider" type="range" min="1" max="100" value="50" />
+    <input id="yslider" class="vslider" type="range" min="1" max="100" value="50" />
   </div>
   <div class="righthalf">
     <label id="target"></label>
@@ -42,25 +44,30 @@
   <div class="editbuttons">
     <label>
       <input type="radio" value="draw" name="edit" checked />
-      <img src="pen.png" alt="Draw">
+      <img src="pen.png" alt="Draw" />
     </label>
-    &nbsp;&nbsp;
     <label>
       <input type="radio" value="move" name="edit" />
-      <img src="move.png" alt="Move">
+      <img src="move.png" alt="Move" />
     </label>
     <label>
       <input type="radio" value="delete" name="edit" />
-      <img src="delete.png" alt="Delete">
+      <img src="delete.png" alt="Delete" />
     </label>
+    &nbsp;&nbsp;
     <input id="undo" type="image" src="undo.png" title="Undo" />
     <input id="preview" type="image" src="preview.png" title="Preview" />
   </div>
   &nbsp;&nbsp;
-  <div class="functions">
+  <div class="editbuttons">
     <input id="load" type="image" src="load.png" title="Load" />
     <input id="export" type="image" src="export.png" title="Export" />
     <input id="new" type="image" src="new.png" title="New" />
+    &nbsp;&nbsp;
+    <label>
+      <input type="checkbox" value="move" name="glyph" />
+      <img src="move2.png" alt="Move whole glyph" />
+    </label>
   </div>
   <script>
     // onLoad

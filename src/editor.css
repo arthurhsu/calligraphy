@@ -19,7 +19,7 @@ div {
   width: 512px;
   height: 512px;
   padding: 0px;
-  margin: 0px;
+  margin-right: 20px;
 }
 
 .righthalf {
@@ -51,24 +51,41 @@ div {
 }
 
 .editbuttons {
-  padding: 0;
+  margin-block: 20px;
 }
 
-.editbuttons [type=radio] {
+.editbuttons input[type=radio] {
   position: absolute;
   opacity: 0;
   width: 0;
   height: 0;
 }
 
-.editbuttons [type=radio] + img {
+.editbuttons input[type=radio] + img {
   outline: none;
   cursor: pointer;
   width: 32px;
   height: 32px;
 }
 
-.editbuttons [type=radio]:checked + img {
+.editbuttons input[type=radio]:checked + img {
+  border-radius: 5px;
+  border: 2px solid #f00;
+}
+
+.editbuttons input[type=checkbox] {
+  display: none;
+}
+
+.editbuttons input[type=checkbox] + img {
+  display: inline-block;
+  outline: none;
+  cursor: pointer;
+  width: 32px;
+  height: 32px;
+}
+
+.editbuttons input[type=checkbox]:checked + img {
   border-radius: 5px;
   border: 2px solid #f00;
 }
@@ -82,4 +99,15 @@ input[type=image] {
 
 .functions {
   padding: 0
+}
+
+input[type="range"] {
+  width: 512px;
+}
+
+.vslider {
+  position: absolute;
+  top: 256px;
+  left: 276px;
+  transform: rotate(90deg);
 }
