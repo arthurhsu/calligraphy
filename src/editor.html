@@ -18,6 +18,8 @@
     </svg>
   </div>
   <div class="righthalf">
+    <label id="target"></label>
+    <br/>
     <div class="preview101">
       <svg xmlns="http://www.w3.org/2000/svg"
          xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -65,7 +67,8 @@
     // onLoad
     (function() {
       acquireGlyph();
-      setupCanvasHandlers(512, '#pad', '#preview1', '#preview2', '#bgImage');
+      setupCanvasHandlers(
+          512, '#pad', '#preview1', '#preview2', '#bgImage', '#target');
       setupEditingHandlers('edit', '#undo', '#confirm', '#cancel');
       setupFunctionHandlers('#load', '#export', '#new');
     })();

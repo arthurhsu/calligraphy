@@ -31,15 +31,17 @@ function acquireGlyph() {
   }
 }
 
-function setupCanvasHandlers(size, main, preview1, preview2, bgImage) {
+function setupCanvasHandlers(size, main, preview1, preview2, bgImage, target) {
   Canvas.size = size;
   Canvas.main = main;
   Canvas.preview1 = preview1;
   Canvas.preview2 = preview2;
   Canvas.bgImage = bgImage;
+  Canvas.target = target;
 
   Guides.setup(size);
   MouseHandler.get().install();
+  $(Canvas.target).text(`${Glyph.get().text} ${Glyph.get().getCode()}`);
 }
 
 function setupEditingHandlers(name, undoBtn, confirmBtn, cancelBtn) {
@@ -63,10 +65,12 @@ function setupFunctionHandlers(loadBtn, exportBtn, newBtn) {
     EditingHandlers.get().clear();
     $(Canvas.main).children('path[id^=S]').remove();
     $(Canvas.main).children('circle').remove();
-    $(Canvas.bgImage).attr('href', '');
+    const image = document.getElementById(Canvas.bgImage.substring(1));
+    image.removeAttributeNS('http://www.w3.org/1999/xlink', 'href');
     $(Canvas.preview1).empty();
     $(Canvas.preview2).empty();
     acquireGlyph();
+    $(Canvas.target).text(`${Glyph.get().text} ${Glyph.get().getCode()}`);
   });
 }
 
@@ -76,6 +80,7 @@ class Canvas {
   static preview1;
   static preview2;
   static bgImage;
+  static target;
 }
 
 class EditingHandlers {
