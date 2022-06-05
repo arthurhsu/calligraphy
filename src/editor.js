@@ -44,8 +44,8 @@ function setupCanvasHandlers(size, main, preview1, preview2, bgImage, target) {
   $(Canvas.target).text(`${Glyph.get().text} ${Glyph.get().getCode()}`);
 }
 
-function setupEditingHandlers(name, undoBtn, confirmBtn, cancelBtn) {
-  EditingHandlers.get().install(name, undoBtn, confirmBtn, cancelBtn);
+function setupEditingHandlers(name, undoBtn, confirmBtn) {
+  EditingHandlers.get().install(name, undoBtn, confirmBtn);
 }
 
 function setupFunctionHandlers(loadBtn, exportBtn, newBtn) {
@@ -100,7 +100,7 @@ class EditingHandlers {
     $(`input[name=${this.radioGroup}][value='draw']`).prop('checked', true);
   }
 
-  install(name, undoBtn, confirmBtn, cancelBtn) {
+  install(name, undoBtn, previewBtn) {
     $(`input:radio[name=${name}]`).click(() => {
       const val = $(`input:radio[name=${name}]:checked`).val();
       EditorState.state = val;
@@ -112,12 +112,8 @@ class EditingHandlers {
       Glyph.get().removeLastStroke();
     });
 
-    $(confirmBtn).click(() => {
+    $(previewBtn).click(() => {
       Glyph.get().updatePreviews();
-    });
-
-    $(cancelBtn).click(() => {
-      // TODO: cancel
     });
   }
 }

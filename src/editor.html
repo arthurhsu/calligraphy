@@ -44,7 +44,7 @@
       <input type="radio" value="draw" name="edit" checked />
       <img src="pen.png" alt="Draw">
     </label>
-    &nbsp;
+    &nbsp;&nbsp;
     <label>
       <input type="radio" value="move" name="edit" />
       <img src="move.png" alt="Move">
@@ -53,15 +53,14 @@
       <input type="radio" value="delete" name="edit" />
       <img src="delete.png" alt="Delete">
     </label>
-    <input id="undo" type="button" value="Undo" />
-    <input id="confirm" type="button" value="Confirm" />
-    <input id="cancel" type="button" value="Cancel" />
+    <input id="undo" type="image" src="undo.png" title="Undo" />
+    <input id="preview" type="image" src="preview.png" title="Preview" />
   </div>
-  <br/>
+  &nbsp;&nbsp;
   <div class="functions">
-    <input id="load" type="button" value="Load" />
-    <input id="export" type="button" value="Export" />
-    <input id="new" type="button" value="New" />
+    <input id="load" type="image" src="load.png" title="Load" />
+    <input id="export" type="image" src="export.png" title="Export" />
+    <input id="new" type="image" src="new.png" title="New" />
   </div>
   <script>
     // onLoad
@@ -69,7 +68,7 @@
       acquireGlyph();
       setupCanvasHandlers(
           512, '#pad', '#preview1', '#preview2', '#bgImage', '#target');
-      setupEditingHandlers('edit', '#undo', '#confirm', '#cancel');
+      setupEditingHandlers('edit', '#undo', '#preview');
       setupFunctionHandlers('#load', '#export', '#new');
     })();
   </script>
