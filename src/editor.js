@@ -9,13 +9,8 @@
 function writeFile(fileName, contents) {
   const streamSaver = window.streamSaver;
   const payload = new TextEncoder().encode(contents);
-
-  // streamSaver.createWriteStream() returns a writable byte stream
-  // The WritableStream only accepts Uint8Array chunks
-  // (no other typed arrays, arrayBuffers or strings are allowed)
   const fileStream = streamSaver.createWriteStream(
       fileName, { size: payload.byteLength });
-
   const writer = fileStream.getWriter();
   writer.write(payload);
   writer.close();
@@ -25,11 +20,25 @@ function SVG(tag) {
   return document.createElementNS('http://www.w3.org/2000/svg', tag);
 }
 
-function setupCanvasHandlers(main, preview1, preview2) {
+function acquireGlyph() {
+  let moveOn = false;
+  while (!moveOn) {
+    const text = prompt('Input a Kanji to start:').trim();
+    if (text.length == 1) {
+      Glyph.get().load(text);
+      moveOn = true;
+    }
+  }
+}
+
+function setupCanvasHandlers(size, main, preview1, preview2, bgImage) {
+  Canvas.size = size;
   Canvas.main = main;
   Canvas.preview1 = preview1;
   Canvas.preview2 = preview2;
+  Canvas.bgImage = bgImage;
 
+  Guides.setup(size);
   MouseHandler.get().install();
 }
 
@@ -37,37 +46,36 @@ function setupEditingHandlers(name, undoBtn, confirmBtn, cancelBtn) {
   EditingHandlers.get().install(name, undoBtn, confirmBtn, cancelBtn);
 }
 
-function setupFunctionHandlers(
-    textInput, submitBtn, loadBtn, exportBtn, newBtn) {
-  $(submitBtn).click(() => {
-    Glyph.get().setText($(textInput).val());
-  });
-
+function setupFunctionHandlers(loadBtn, exportBtn, newBtn) {
   $(exportBtn).click(() => {
     Glyph.get().export();
   });
 
   $(loadBtn).click(() => {
-    const text = $(textInput).val().trim();
-    Glyph.get().load(text.length ? text : undefined);
+    Glyph.get().loadLegacy();
   });
 
   $(newBtn).click(() => {
-    if (!Glyph.get().saved && confirm('Abandon current glyph?')) {
-      Glyph.clear();
-      MouseHandler.get().clear();
-      EditingHandlers.get().clear();
-      document.getElementById(Canvas.main).replaceChildren();
-      document.getElementById(Canvas.preview1).replaceChildren();
-      document.getElementById(Canvas.preview2).replaceChildren();
-    }
+    if (!Glyph.get().saved && !confirm('Abandon current glyph?')) return;
+
+    Glyph.clear();
+    MouseHandler.get().clear();
+    EditingHandlers.get().clear();
+    $(Canvas.main).children('path[id^=S]').remove();
+    $(Canvas.main).children('circle').remove();
+    $(Canvas.bgImage).attr('href', '');
+    $(Canvas.preview1).empty();
+    $(Canvas.preview2).empty();
+    acquireGlyph();
   });
 }
 
 class Canvas {
+  static size;
   static main;
   static preview1;
   static preview2;
+  static bgImage;
 }
 
 class EditingHandlers {
@@ -95,11 +103,12 @@ class EditingHandlers {
     this.radioGroup = name;
 
     $(undoBtn).click(() => {
-      // TODO: register undo handler
+      // TODO: a better undo
+      Glyph.get().removeLastStroke();
     });
 
     $(confirmBtn).click(() => {
-      // TODO: confirm
+      Glyph.get().updatePreviews();
     });
 
     $(cancelBtn).click(() => {
@@ -109,6 +118,10 @@ class EditingHandlers {
 }
 
 class Guides {
+  static setup(width) {
+    return new Guides(width);
+  }
+
   constructor(width) {
     this.box(width, 90);
     this.box(width, 80);
@@ -188,66 +201,82 @@ class Glyph {
   }
 
   removeLastStroke() {
-    this.strokes.pop();
+    this.eraseStroke(this.strokes.pop());
   }
 
-  getCode(s) {
-    if (s.length != 1) return;
-    return s.charCodeAt(0).toString(16).toUpperCase();
+  eraseStroke(stroke) {
+    stroke.vertexIds.forEach(id => $(`#${id}`).remove());
+    stroke.splineIds.forEach(id => $(`#${id}`).remove());
   }
 
-  getPath(s) {
-    if (s.length != 1) return;
-    const code = this.getCode(s);
+  getCode() {
+    return this.text.charCodeAt(0).toString(16).toUpperCase();
+  }
+
+  getPath() {
+    const code = this.getCode();
     return `/data/${code.slice(0, 1)}/${code}.json`;
   }
 
-  render(json) {
-    this.text = json.text;
-    // TODO: handle multiple glyphs
-
-    const g = json.glyphs[0];
-    this.strokes = g['rawstrokes'].map((s, i) => Stroke.deserialize(i, s));
+  getLegacyPath() {
+    const code = this.getCode();
+    return `/assets/${code.slice(0, 1)}/${code}.png`;
   }
 
-  load(text) {
-    if (text !== this.text && text !== undefined && this.text !== undefined) {
-      // TODO: FIXME: not good handling, need fix
-      alert('inconsistent char');
-      return;
-    }
+  render(json) {
+    const g = json.glyphs[0];
+    this.strokes = g.strokes.map((s, i) => Stroke.deserialize(i, s));
+    this.updatePreviews();
+  }
 
-    const s = text === undefined ? this.text : text;
+  load(s) {
+    this.text = s;
     return fetch(this.getPath(s)).then(resp => {
-      if (resp.ok) {
-        this.render(resp.json());
+      return resp.ok ? resp.json() : Promise.resolve(null);
+    }).then(json => {
+      if (json !== null) {
+        // TODO: solve multi glyph
+        this.render(json);
       }
-      return undefined;
     }, this);
   }
 
-  export() {
-    if (this.text === undefined) {
-      throw('no text associated');
-    }
+  // Load and render legacy asset
+  loadLegacy() {
+    const image = document.getElementById(Canvas.bgImage.substring(1));
+    image.setAttributeNS(
+        'http://www.w3.org/1999/xlink', 'href', this.getLegacyPath());
+    $(Canvas.bgImage).attr('width', Canvas.size);
+    $(Canvas.bgImage).attr('height', Canvas.size);
+  }
 
+  export() {
     // TODO: handle multi-glyph
-    let ret = {
+    const ret = {
       'code': this.getCode(this.text),
       'text': this.text,
-      'glyphs': [{'strokes': this.splines.map(s => s.serialize())}]
+      'glyphs': [{'strokes': this.strokes.map(s => s.serialize())}]
     };
 
+    writeFile(`${this.getCode()}.json`, JSON.stringify(ret));
     this.saved = true;
   }
 
-  setText(s) {
-    if (s.length != 1) return;
-    if (this.text) {
-      throw('glyph is not empty');
-    }
-    this.text = s;
-    this.saved = false;
+  updatePreviews() {
+    $(Canvas.preview1).empty();
+    $(Canvas.preview2).empty();
+    this.strokes.forEach(s => {
+      s.splines.forEach(p => {
+        let e = $(SVG('path'))
+            .attr('fill', 'none')
+            .attr('stroke', 'blue')
+            .attr('stroke-width', 16)
+            .attr('stroke-linecap', 'round')
+            .attr('d', $(p).attr('d'));
+        $(Canvas.preview1).append(e.clone());
+        $(Canvas.preview2).append(e);
+      });
+    });
   }
 }
 
@@ -263,17 +292,18 @@ class Stroke {
 
   static deserialize(id, json) {
     const ret = new Stroke(id);
-    for (i = 0; i < json.dots.length; i += 2) {
-      ret.drawDot(x, y);
+    for (let i = 0; i < json.dots.length; i += 2) {
+      ret.drawDot(json.dots[i], json.dots[i + 1]);
     }
+    ret.finish();
     return ret;
   }
 
   serialize() {
     // TODO: fix data2svg.js, data structure changed
     return {
-      'dots': this.vertices,
-      'splines': this.splineIds.map(id => $(id).attr('d'))
+      'dots': this.vertices.flat(),
+      'splines': this.splineIds.map(id => $(`#${id}`).attr('d'))
     }
   }
 
@@ -433,6 +463,7 @@ class Stroke {
       this.vertices.splice(this.selected, 1);
       this.vertexIds.splice(this.selected, 1);
       this.splines.splice(this.selected, 1);
+      this.splineIds.splice(this.selected, 1);
       this.updateSplines();
       this.unselectDot();
     }

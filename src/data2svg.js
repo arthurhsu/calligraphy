@@ -24,7 +24,7 @@ function toSVG(filePath, code, glyph = 0, color = 'blue', width = 16) {
       'stroke-linecap:round}');
   contents.push('</style>');
   json.glyphs[glyph].strokes.forEach(s => {
-    contents.push(`<path d="${s}"></path>`);
+    s.splines.forEach(p => contents.push(`<path d="${p}"></path>`));
   });
   contents.push('</svg>');
   console.log(contents.join(''));
