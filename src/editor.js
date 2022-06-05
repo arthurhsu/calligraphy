@@ -5,36 +5,125 @@
  * Cubic Bezier computation courtesy of
  * http://www.particleincell.com/2012/bezier-splines/
  */
-(function() {
 
-var W = 512;  // width of SVG canvas
-var V = [];  // vertices
-var S = [];  // splines
-var G = 0;  // stroke number
-var C = -1;  // Current node index
-var x0, y0, cx, cy;
-var code;
+function writeFile(fileName, contents) {
+  const streamSaver = window.streamSaver;
+  const payload = new TextEncoder().encode(contents);
+
+  // streamSaver.createWriteStream() returns a writable byte stream
+  // The WritableStream only accepts Uint8Array chunks
+  // (no other typed arrays, arrayBuffers or strings are allowed)
+  const fileStream = streamSaver.createWriteStream(
+      fileName, { size: payload.byteLength });
+
+  const writer = fileStream.getWriter();
+  writer.write(payload);
+  writer.close();
+}
 
 function SVG(tag) {
   return document.createElementNS('http://www.w3.org/2000/svg', tag);
 }
 
-class Guides {
+function setupCanvasHandlers(main, preview1, preview2) {
+  Canvas.main = main;
+  Canvas.preview1 = preview1;
+  Canvas.preview2 = preview2;
+
+  MouseHandler.get().install();
+}
+
+function setupEditingHandlers(name, undoBtn, confirmBtn, cancelBtn) {
+  EditingHandlers.get().install(name, undoBtn, confirmBtn, cancelBtn);
+}
+
+function setupFunctionHandlers(
+    textInput, submitBtn, loadBtn, exportBtn, newBtn) {
+  $(submitBtn).click(() => {
+    Glyph.get().setText($(textInput).val());
+  });
+
+  $(exportBtn).click(() => {
+    Glyph.get().export();
+  });
+
+  $(loadBtn).click(() => {
+    const text = $(textInput).val().trim();
+    Glyph.get().load(text.length ? text : undefined);
+  });
+
+  $(newBtn).click(() => {
+    if (!Glyph.get().saved && confirm('Abandon current glyph?')) {
+      Glyph.clear();
+      MouseHandler.get().clear();
+      EditingHandlers.get().clear();
+      document.getElementById(Canvas.main).replaceChildren();
+      document.getElementById(Canvas.preview1).replaceChildren();
+      document.getElementById(Canvas.preview2).replaceChildren();
+    }
+  });
+}
+
+class Canvas {
+  static main;
+  static preview1;
+  static preview2;
+}
+
+class EditingHandlers {
+  static instance = undefined;
+  static get() {
+    if (EditingHandlers.instance === undefined) {
+      EditingHandlers.instance = new EditingHandlers();
+    }
+    return EditingHandlers.instance;
+  }
+
   constructor() {
-    this.box(90);
-    this.box(80);
-    this.box(75);
-    this.box(50);
-    this.line(0, W / 2, W, W / 2);
-    this.line(W / 2, 0, W / 2, W);
-    this.line(0, 0, W, W);
-    this.line(W, 0, 0, W);
+    this.radioGroup = undefined;
+  }
+
+  clear() {
+    $(`input[name=${this.radioGroup}][value='draw']`).prop('checked', true);
+  }
+
+  install(name, undoBtn, confirmBtn, cancelBtn) {
+    $(`input:radio[name=${name}]`).click(() => {
+      const val = $(`input:radio[name=${name}]:checked`).val();
+      EditorState.state = val;
+    });
+    this.radioGroup = name;
+
+    $(undoBtn).click(() => {
+      // TODO: register undo handler
+    });
+
+    $(confirmBtn).click(() => {
+      // TODO: confirm
+    });
+
+    $(cancelBtn).click(() => {
+      // TODO: cancel
+    });
+  }
+}
+
+class Guides {
+  constructor(width) {
+    this.box(width, 90);
+    this.box(width, 80);
+    this.box(width, 75);
+    this.box(width, 50);
+    this.line(0, width / 2, width, width / 2);
+    this.line(width / 2, 0, width / 2, width);
+    this.line(0, 0, width, width);
+    this.line(width, 0, 0, width);
   }
 
   // Draw box for percentile
-  box(pct) {
-    const l = W * (100 - pct) / 200;
-    const r = W - l;
+  box(width, pct) {
+    const l = width * (100 - pct) / 200;
+    const r = width - l;
     const command = `M${l} ${l} L${[r, l, r, r, l, r, l, l].join(' ')}`;
     return $(SVG('path'))
         .attr('id', 'rc' + pct)
@@ -42,7 +131,7 @@ class Guides {
         .attr('stroke', 'red')
         .attr('stroke-dasharray', '5,5')
         .attr('d', command)
-        .appendTo('#pad');
+        .appendTo(Canvas.main);
   }
 
   line(x1, y1, x2, y2) {
@@ -53,369 +142,423 @@ class Guides {
         .attr('y2', y2)
         .attr('stroke', 'red')
         .attr('stroke-dasharray', '5,5')
-        .appendTo('#pad');
+        .appendTo(Canvas.main);
   }
 }
 
-// Draw a dot
-function drawDot(x, y) {
-  $(SVG('circle'))
-    .attr('id', 'c' + V.length)
-    .attr('r', 8)
-    .attr('cx', x)
-    .attr('cy', y)
-    .attr('fill', 'none')
-    .attr('stroke', 'red')
-    .attr('stroke-width', 3)
-    .appendTo('#pad');
-}
+class Glyph {
+  static instance = undefined;
 
-// Creates path string for SVG cubic path element
-function path(x1, y1, px1, py1, px2, py2, x2, y2) {
-  return 'M ' + x1 + ' ' + y1 + ' C ' +
-      [px1.toFixed(2), py1.toFixed(2), px2.toFixed(2), py2.toFixed(2), x2, y2].join(' ');
-}
-
-// Update splines
-function updateSplines() {
-  var x = V.map(function(dot) {
-    return dot[0];
-  });
-  var y = V.map(function(dot) {
-    return dot[1];
-  });
-
-  px = computeControlPoints(x);
-  py = computeControlPoints(y);
-
-  for (i = 0; i < V.length - 1; ++i) {
-    S[i].setAttributeNS(null, 'd',
-        path(x[i], y[i], px.p1[i], py.p1[i], px.p2[i], py.p2[i], x[i+1], y[i+1]));
-  }
-}
-
-// Compute control points
-function computeControlPoints(K) {
-  var n = K.length - 1;
-  var p1 = new Array(n);
-  var p2 = new Array(n);
-  var a = new Array(n);
-  var b = new Array(n);
-  var c = new Array(n);
-  var r = new Array(n);
-
-  // left most segment
-	a[0] = 0;
-	b[0] = 2;
-	c[0] = 1;
-	r[0] = K[0]+2*K[1];
-
-	// internal segments
-	for (var i = 1; i < n - 1; i++)	{
-		a[i] = 1;
-		b[i] = 4;
-		c[i] = 1;
-		r[i] = 4 * K[i] + 2 * K[i + 1];
-	}
-
-	// right segment
-	a[n - 1] = 2;
-	b[n - 1] = 7;
-	c[n - 1] = 0;
-	r[n - 1] = 8 * K[n - 1] + K[n];
-
-	// solves Ax=b with the Thomas algorithm (from Wikipedia)
-	for (var i = 1; i < n; i++) {
-		var m = a[i] / b[i - 1];
-		b[i] = b[i] - m * c[i - 1];
-		r[i] = r[i] - m * r[i - 1];
-	}
-
-  p1[n - 1] = r[n - 1] / b[n - 1];
-	for (var i = n - 2; i >= 0; --i) {
-		p1[i] = (r[i] - c[i] * p1[i + 1]) / b[i];
+  constructor() {
+    this.strokes = [];
+    this.text = undefined;
+    this.saved = true;
   }
 
-	// we have p1, now compute p2
-	for (var i = 0; i < n - 1; i++) {
-		p2[i] = 2 * K[i + 1] - p1[i + 1];
+  static get() {
+    if (Glyph.instance == undefined) {
+      Glyph.instance = new Glyph();
+    }
+    return Glyph.instance;
   }
-	p2[n - 1] = 0.5 * (K[n] + p1[n - 1]);
-	return {p1: p1, p2: p2};
-}
 
-function addPath() {
-  var s = SVG('path');
-  $(s)
-    .attr('id', 's' + S.length)
-    .attr('fill', 'none')
-    .attr('stroke', 'green')
-    .attr('stroke-width', 16)
-    .attr('stroke-linecap', 'round')
-    .insertBefore('#c0');
-  S.push(s);
-}
+  static clear() {
+    Glyph.instance = undefined;
+  }
 
-// mousedown event handler for mark mode
-function mdHandlerMark(e) {
-  if (e.button == 0) {  // left button
-    drawDot(e.offsetX, e.offsetY);
-    V.push([e.offsetX, e.offsetY]);
-    if (V.length > 1) {
-      while (S.length < V.length - 1) {
-        addPath();
+  addStroke(s) {
+    this.strokes.push(s);
+    this.saved = false;
+  }
+
+  getNumberOfStrokes() {
+    return this.strokes.length;
+  }
+
+  getStroke(i) {
+    return this.strokes[i];
+  }
+
+  getLastStroke() {
+    return this.getStroke(this.getNumberOfStrokes() - 1);
+  }
+
+  removeStroke(i) {
+    this.strokes.splice(i, 1);
+  }
+
+  removeLastStroke() {
+    this.strokes.pop();
+  }
+
+  getCode(s) {
+    if (s.length != 1) return;
+    return s.charCodeAt(0).toString(16).toUpperCase();
+  }
+
+  getPath(s) {
+    if (s.length != 1) return;
+    const code = this.getCode(s);
+    return `/data/${code.slice(0, 1)}/${code}.json`;
+  }
+
+  render(json) {
+    this.text = json.text;
+    // TODO: handle multiple glyphs
+
+    const g = json.glyphs[0];
+    this.strokes = g['rawstrokes'].map((s, i) => Stroke.deserialize(i, s));
+  }
+
+  load(text) {
+    if (text !== this.text && text !== undefined && this.text !== undefined) {
+      // TODO: FIXME: not good handling, need fix
+      alert('inconsistent char');
+      return;
+    }
+
+    const s = text === undefined ? this.text : text;
+    return fetch(this.getPath(s)).then(resp => {
+      if (resp.ok) {
+        this.render(resp.json());
       }
-      updateSplines();
+      return undefined;
+    }, this);
+  }
+
+  export() {
+    if (this.text === undefined) {
+      throw('no text associated');
+    }
+
+    // TODO: handle multi-glyph
+    let ret = {
+      'code': this.getCode(this.text),
+      'text': this.text,
+      'glyphs': [{'strokes': this.splines.map(s => s.serialize())}]
+    };
+
+    this.saved = true;
+  }
+
+  setText(s) {
+    if (s.length != 1) return;
+    if (this.text) {
+      throw('glyph is not empty');
+    }
+    this.text = s;
+    this.saved = false;
+  }
+}
+
+class Stroke {
+  constructor(id = -1) {
+    this.id = (id == -1) ? Glyph.get().getNumberOfStrokes() : id;
+    this.vertices = [];  // vertices
+    this.vertexIds = [];  // ids for vertices
+    this.splines = [];  // splines
+    this.splineIds = [];  // ids for splines
+    this.unselectDot();
+  }
+
+  static deserialize(id, json) {
+    const ret = new Stroke(id);
+    for (i = 0; i < json.dots.length; i += 2) {
+      ret.drawDot(x, y);
+    }
+    return ret;
+  }
+
+  serialize() {
+    // TODO: fix data2svg.js, data structure changed
+    return {
+      'dots': this.vertices,
+      'splines': this.splineIds.map(id => $(id).attr('d'))
     }
   }
-}
 
-// mousedown event handler for move mode
-function startMoving(e) {
-  if (e.button == 0) {
-    x0 = e.clientX;
-    y0 = e.clientY;
-    C = -1;
-    for (var i = 0; i < V.length; ++i) {
-      if (x0 <= V[i][0] + 16 && x0 >= V[i][0] - 16 &&
-          y0 <= V[i][1] + 16 && y0 >= V[i][1] - 16) {
-        C = i;
-        break;
-      }
-    }
-    if (C != -1) {
-      node = document.getElementById('c' + C);
-      $('#pad').on('mousemove', moveNode);
-    }
+  isEmpty() {
+    return this.vertices.length <= 1;
   }
-}
 
-// Updates dragged circle and recomputes splines
-function moveNode(e) {
-  cx = e.clientX;
-  cy = e.clientY;
-
-  node.setAttributeNS(null, 'cx', cx);
-  node.setAttributeNS(null, 'cy', cy);
-  V[C] = [cx, cy];
-  updateSplines();
-}
-
-// Exit move mode and return to mark mode
-function stopMoving() {
-  C = -1;
-  $('#pad').off('mousemove');
-  $('#pad').off('mouseup');
-  $('#pad').off('mousedown');
-  $('#pad').on('mousedown', mdHandlerMark);
-  $('#move').val('Move');
-}
-
-// Exit move mode and return to move mode again
-function nextMove() {
-  C = -1;
-  $('#pad').off('mousemove');
-}
-
-// Load asset from github
-function loadAsset() {
-  stopMoving();
-  $('#downloadLink').attr('href', '');
-  code = $('#char').val().charCodeAt(0).toString(16).toUpperCase();
-  var path = '../assets/' + code.slice(0, 1) + '/' + code + '.png';
-  var image = document.getElementById('bgImage');
-  image.setAttributeNS('http://www.w3.org/1999/xlink', 'href', path);
-  image = $('#bgImage');
-  image.attr('x', $('#px').val());
-  image.attr('y', $('#py').val());
-  image.attr('width', $('#width').val());
-  image.attr('height', $('#height').val());
-}
-
-// Delete current stroke
-function deleteStroke() {
-  stopMoving();
-  var pad = document.getElementById('pad');
-  for (var i = 0; i < V.length; ++i) {
-    $('#c' + i).remove();
+  // Draw a dot
+  drawDot(x, y) {
+    const id = `S${this.id}c${this.vertices.length}`;
+    $(SVG('circle'))
+      .attr('id', id)
+      .attr('r', 8)
+      .attr('cx', x)
+      .attr('cy', y)
+      .attr('fill', 'none')
+      .attr('stroke', 'red')
+      .attr('stroke-width', 3)
+      .appendTo(Canvas.main);
+    this.vertices.push([x, y]);
+    this.vertexIds.push(id);
   }
-  for (var i = 0; i < S.length; ++i) {
-    $('#s' + i).remove();
-  }
-  V = [];
-  S = [];
-}
 
-// Adjust current stroke
-function adjustStroke() {
-  if ($('#move').val() == 'Move') {
-    $('#pad').off('mousedown');
-    $('#pad').on('mousedown', startMoving);
-    $('#pad').off('mouseup');
-    $('#pad').on('mouseup', nextMove);
-    $('#move').val('Mark');
-  } else {
-    stopMoving();
-  }
-}
-
-// Add stroke
-function addStroke() {
-  stopMoving();
-
-  var extractPath = function() {
-    var vector = [];
-    for (var i = 0; i < S.length; ++i) {
-      var d = S[i].getAttributeNS(null, 'd');
-      if (i > 0) {
-        vector.push(d.slice(d.indexOf('C ') + 2));
-      } else {
-        vector.push(d);
-      }
-    }
-    return vector.join(' ');
-  };
-
-  var addToGroup = function(container, idPrefix, color) {
-    var s = SVG('path');
+  addPath() {
+    const id = `S${this.id}s${this.splines.length}`;
+    let s = SVG('path');
     $(s)
-        .attr('id', idPrefix + G)
-        .attr('fill', 'none')
-        .attr('stroke', color)
-        .attr('stroke-width', 16)
-        .attr('stroke-linecap', 'round')
-        .attr('d', extractPath())
-        .appendTo(container);
-  };
-  addToGroup('#pad', 'g', 'brown');
-  addToGroup('#preview1', 'a', 'blue');
-  addToGroup('#preview2', 'b', 'blue');
-  G++;
-  deleteStroke();
-}
-
-var SVGHEADER =
-    '<?xml-stylesheet type="text/css" href="hsu.css"?>' +
-    '<svg xmlns="http://www.w3.org/2000/svg" viewbox="0 0 512 512">';
-var SVGMETA =
-    '<metadata><rdf:RDF xmlns:cc="http://web.resource.org/cc/" ' +
-    'xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">' +
-    '<cc:work rdf:about="">' +
-    '<cc:license rdf:resource=' +
-    '"https://github.com/arthurhsu/calligraphy/blob/master/LICENSE"/>' +
-    '</cc:work></rdf:RDF></metadata>';
-
-// Save the character
-function saveAsset() {
-  stopMoving();
-
-  var svgContents =
-      document.getElementById('preview2').innerHTML;
-  svgContents = svgContents.replace(/ id="(\w+)"/g, '');
-  svgContents = svgContents.replace(
-      /fill="none" stroke="blue" stroke-width="16" stroke-linecap="round"/g,
-      'class="hsu"');
-
-  var contents =
-    SVGHEADER +
-    '<title>' + $('#char').val() + '</title>' +
-    SVGMETA +
-    svgContents +
-    '</svg>';
-  $('#downloadLink').attr('href', 'data:text/plain;charset=utf-8,' +
-    encodeURIComponent(contents));
-  $('#downloadLink').attr('download', code + '.svg');
-}
-
-// Remove last stroke
-function undoStroke() {
-  if (G > 0) {
-    G--;
-    $('#g' + G).remove();
-    $('#a' + G).remove();
-    $('#b' + G).remove();
+      .attr('id', id)
+      .attr('fill', 'none')
+      .attr('stroke', 'green')
+      .attr('stroke-width', 16)
+      .attr('stroke-linecap', 'round')
+      .insertBefore('#S0c0');
+    this.splines.push(s);
+    this.splineIds.push(id);
   }
-}
 
-function removeRaceHandlers() {
-  $('#pad').off('mousedown');
-  // $('#pad').off('touchstart');
+  // Compute control points
+  computeControlPoints(K) {
+    const n = K.length - 1;
+    let p1 = new Array(n);
+    let p2 = new Array(n);
+    let a = new Array(n);
+    let b = new Array(n);
+    let c = new Array(n);
+    let r = new Array(n);
+
+    // left most segment
+    a[0] = 0;
+    b[0] = 2;
+    c[0] = 1;
+    r[0] = K[0] + 2 * K[1];
+
+    // internal segments
+    for (let i = 1; i < n - 1; i++)	{
+      a[i] = 1;
+      b[i] = 4;
+      c[i] = 1;
+      r[i] = 4 * K[i] + 2 * K[i + 1];
+    }
+
+    // right segment
+    a[n - 1] = 2;
+    b[n - 1] = 7;
+    c[n - 1] = 0;
+    r[n - 1] = 8 * K[n - 1] + K[n];
+
+    // solves Ax=b with the Thomas algorithm (from Wikipedia)
+    for (let i = 1; i < n; i++) {
+      const m = a[i] / b[i - 1];
+      b[i] = b[i] - m * c[i - 1];
+      r[i] = r[i] - m * r[i - 1];
+    }
+
+    p1[n - 1] = r[n - 1] / b[n - 1];
+    for (let i = n - 2; i >= 0; --i) {
+      p1[i] = (r[i] - c[i] * p1[i + 1]) / b[i];
+    }
+
+    // we have p1, now compute p2
+    for (let i = 0; i < n - 1; i++) {
+      p2[i] = 2 * K[i + 1] - p1[i + 1];
+    }
+    p2[n - 1] = 0.5 * (K[n] + p1[n - 1]);
+    return {p1: p1, p2: p2};
+  }
+
+  // Creates path string for SVG cubic path element
+  createPath(x1, y1, px1, py1, px2, py2, x2, y2) {
+    return `M ${x1} ${y1} C ` +
+        [
+          px1.toFixed(2), py1.toFixed(2),
+          px2.toFixed(2), py2.toFixed(2),
+          x2, y2
+        ].join(' ');
+  }
+
+  // Update splines
+  updateSplines() {
+    const x = this.vertices.map(dot => dot[0]);
+    const y = this.vertices.map(dot => dot[1]);
+
+    const px = this.computeControlPoints(x);
+    const py = this.computeControlPoints(y);
+
+    for (let i = 0; i < this.vertices.length - 1; ++i) {
+      this.splines[i].setAttributeNS(
+          null,
+          'd',
+          this.createPath(
+              x[i], y[i],
+              px.p1[i], py.p1[i],
+              px.p2[i], py.p2[i],
+              x[i + 1], y[i + 1]));
+    }
+  }
+
+  // Drawing done, finish the splines
+  finish() {
+    while (this.splines.length < this.vertices.length - 1) {
+      this.addPath();
+    }
+    this.updateSplines();
+  }
+
+  // Select a dot on stroke
+  selectDot(x, y) {
+    const v = this.vertices;
+    for (let i = 0; i < v.length; ++i) {
+      if (x < v[i][0] + 16 && x > v[i][0] - 16 &&
+          y < v[i][1] + 16 && y > v[i][1] - 16) {
+        this.selected = i;
+        return true;
+      }
+    }
+    return false;
+  }
+
+  unselectDot() {
+    this.selected = -1;
+  }
+
+  moveDot(x, y) {
+    const node = document.getElementById(this.vertexIds[this.selected]);
+    node.setAttributeNS(null, 'cx', x);
+    node.setAttributeNS(null, 'cy', y);
+    this.vertices[this.selected] = [x, y];
+    this.updateSplines();
+  }
+
+  removeDot() {
+    if (this.selected && this.selected != this.vertices.length - 1) {
+      const vId = this.vertexIds[this.selected];
+      const sId = this.splineIds[this.selected];
+      document.getElementById(vId).remove();
+      document.getElementById(sId).remove();
+      this.vertices.splice(this.selected, 1);
+      this.vertexIds.splice(this.selected, 1);
+      this.splines.splice(this.selected, 1);
+      this.updateSplines();
+      this.unselectDot();
+    }
+  }
 }
 
 class MouseHandler {
-  constructor(e) {
-    $('#pad').on('mouseup', this.mouseup.bind(this));
-    $('#pad').on('mousemove', this.mousemove.bind(this));
-    $('#pad').on('mousedown', this.mousedown.bind(this));
+  static instance = undefined;
+
+  static get() {
+    if (MouseHandler.instance == undefined) {
+      MouseHandler.instance = new MouseHandler();
+    }
+    return MouseHandler.instance;
+  }
+
+  constructor() {
+    this.clear();
+  }
+
+  clear() {
     this.tracking = false;
     this.lastX = undefined;
     this.lastY = undefined;
-    this.mousedown(e);
+    this.currentStroke = undefined;
+  }
+
+  install() {
+    $(Canvas.main).on('mouseup', this.mouseup.bind(this));
+    $(Canvas.main).on('mousemove', this.mousemove.bind(this));
+    $(Canvas.main).on('mousedown', this.mousedown.bind(this));
+  }
+
+  ensureStroke() {
+    if (this.currentStroke === undefined) {
+      this.currentStroke = new Stroke();
+    }
   }
 
   mouseup(e) {
-    if (e.button == 0) {
-      drawDot(e.offsetX, e.offsetY);
-      V.push([e.offsetX, e.offsetY]);
-    }
-    this.tracking = false;
-    if (V.length > 1) {
-      while (S.length < V.length - 1) {
-        addPath();
-      }
-      updateSplines();
+    if (e.button != 0) return;
+
+    if (EditorState.state == EditorState.DRAW) {
+      this.drawMouseup(e);
+    } else {
+      this.tuneMouseup(e);
     }
   }
 
+  drawMouseup(e) {
+    this.currentStroke.drawDot(e.offsetX, e.offsetY);
+    this.tracking = false;
+    if (!this.currentStroke.isEmpty()) {
+      this.currentStroke.finish();
+      Glyph.get().addStroke(this.currentStroke);
+      this.currentStroke = undefined;
+    }
+  }
+
+  tuneMouseup(e) {
+    Glyph.get().getLastStroke().unselectDot();
+    this.tracking = false;
+  }
+
   mousemove(e) {
+    if (EditorState.state == EditorState.DRAW) {
+      this.drawMousemove(e);
+    } else {
+      this.tuneMousemove(e);
+    }
+  }
+
+  drawMousemove(e) {
     if (this.tracking) {
       // pick points have at least delta of 20pt
       const ptX = e.offsetX;
       const ptY = e.offsetY;
       if (Math.max(Math.abs(ptX - this.lastX), Math.abs(ptY - this.lastY)) > 20) {
-        drawDot(ptX, ptY);
-        V.push([ptX, ptY]);
+        this.currentStroke.drawDot(ptX, ptY);
         this.lastX = ptX;
         this.lastY = ptY;
       }
     }
   }
 
+  tuneMousemove(e) {
+    if (this.tracking) {
+      Glyph.get().getLastStroke().moveDot(e.clientX, e.clientY);
+    }
+  }
+
   mousedown(e) {
-    if (e.button == 0) {  // left button
-      this.tracking = true;
-      drawDot(e.offsetX, e.offsetY);
-      V.push([e.offsetX, e.offsetY]);
-      this.lastX = e.offsetX;
-      this.lastY = e.offsetY;
+    if (e.button != 0) return;
+
+    if (EditorState.state == EditorState.DRAW) {
+      this.drawMousedown(e);
+    } else {
+      this.tuneMousedown(e);
+    }
+  }
+
+  drawMousedown(e) {
+    this.tracking = true;
+    this.ensureStroke();
+    this.currentStroke.drawDot(e.offsetX, e.offsetY);
+    this.lastX = e.offsetX;
+    this.lastY = e.offsetY;
+  }
+
+  tuneMousedown(e) {
+    const stroke = Glyph.get().getLastStroke();
+    if (EditorState.state == EditorState.MOVE) {
+      if (stroke.selectDot(e.clientX, e.clientY)) {
+        this.tracking = true;
+      }
+    } else if (EditorState.state == EditorState.DELETE) {
+      if (stroke.selectDot(e.clientX, e.clientY)) {
+        stroke.removeDot();
+      }
     }
   }
 }
 
-function useMouse(e) {
-  removeRaceHandlers();
-  new MouseHandler(e);
+class EditorState {
+  static DRAW = 'draw';
+  static MOVE = 'move';
+  static DELETE = 'delete';
+  static state = EditorState.DRAW;
 }
-
-/*
-function useTouch(e) {
-  removeRaceHandlers();
-  new TouchHandler(e);
-}
-*/
-
-$(function() {
-  new Guides();
-  // $('#pad').on('mousedown', mdHandlerMark);
-  $('#pad').on('mousedown', useMouse);
-  // $('#pad').on('touchstart', useTouch);
-  $('#load').click(loadAsset);
-  $('#move').click(adjustStroke);
-  $('#add').click(addStroke);
-  $('#del').click(deleteStroke);
-  $('#save').click(saveAsset);
-  $('#undo').click(undoStroke);
-});
-
-
-})();
