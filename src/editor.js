@@ -23,8 +23,8 @@ function SVG(tag) {
 function acquireGlyph() {
   let moveOn = false;
   while (!moveOn) {
-    const text = prompt('Input a Kanji to start:').trim();
-    if (text.length == 1) {
+    const text = prompt('Input a Kanji to start:');
+    if (text && text.length == 1) {
       Glyph.get().load(text);
       moveOn = true;
     }
