@@ -55,7 +55,6 @@ div {
 }
 
 .editbuttons input[type=radio] {
-  position: absolute;
   opacity: 0;
   width: 0;
   height: 0;
@@ -88,6 +87,12 @@ div {
 .editbuttons input[type=checkbox]:checked + img {
   border-radius: 5px;
   border: 2px solid #f00;
+}
+
+.editbuttons select {
+  display: inline-block;
+  height: 32px;
+  width: 64px;
 }
 
 input[type=image] {

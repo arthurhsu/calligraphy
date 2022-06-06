@@ -25,7 +25,7 @@ function acquireGlyph() {
   while (!moveOn) {
     const text = prompt('Input a Kanji to start:');
     if (text && text.length == 1) {
-      Glyph.get().load(text);
+      GlyphEditor.get().load(text);
       moveOn = true;
     }
   }
@@ -41,14 +41,17 @@ function setupCanvasHandlers(size, main, preview1, preview2, bgImage, target) {
 
   Guides.setup(size);
   MouseHandler.get().install();
-  $(Canvas.target).text(`${Glyph.get().text} ${Glyph.get().getCode()}`);
 }
 
-function setupEditingHandlers(name, undoBtn, confirmBtn) {
-  EditingHandlers.get().install(name, undoBtn, confirmBtn);
+function setupGlyphHandlers(glyphSelector, moveBtn, addBtn) {
+  GlyphEditor.get().install(glyphSelector, moveBtn, addBtn);
 }
 
-function setupFunctionHandlers(loadBtn, exportBtn, newBtn) {
+function setupStrokeHandlers(strokeSelector, editingRadio, undoBtn, confirmBtn) {
+  StrokeEditor.get().install(strokeSelector, editingRadio, undoBtn, confirmBtn);
+}
+
+function setupWordHandlers(loadBtn, exportBtn, newBtn) {
   $(exportBtn).click(() => {
     Glyph.get().export();
   });
@@ -58,19 +61,8 @@ function setupFunctionHandlers(loadBtn, exportBtn, newBtn) {
   });
 
   $(newBtn).click(() => {
-    if (!Glyph.get().saved && !confirm('Abandon current glyph?')) return;
-
-    Glyph.clear();
-    MouseHandler.get().clear();
-    EditingHandlers.get().clear();
-    $(Canvas.main).children('path[id^=S]').remove();
-    $(Canvas.main).children('circle').remove();
-    const image = document.getElementById(Canvas.bgImage.substring(1));
-    image.removeAttributeNS('http://www.w3.org/1999/xlink', 'href');
-    $(Canvas.preview1).empty();
-    $(Canvas.preview2).empty();
+    GlyphEditor.get().clear();
     acquireGlyph();
-    $(Canvas.target).text(`${Glyph.get().text} ${Glyph.get().getCode()}`);
   });
 }
 
@@ -83,13 +75,66 @@ class Canvas {
   static target;
 }
 
-class EditingHandlers {
+class GlyphEditor {
   static instance = undefined;
   static get() {
-    if (EditingHandlers.instance === undefined) {
-      EditingHandlers.instance = new EditingHandlers();
+    if (GlyphEditor.instance === undefined) {     
+      GlyphEditor.instance = new GlyphEditor();
     }
-    return EditingHandlers.instance;
+    return GlyphEditor.instance;
+  }
+
+  constructor() {
+    this.index = -1;
+    this.selectorId = undefined;
+  }
+
+  install(glyphSelector, moveBtn, addBtn) {
+    this.selectorId = glyphSelector;
+    $(glyphSelector).change(this.onChange.bind(this));
+    $(moveBtn).change(this.onToggleMove.bind(this));
+    $(addBtn).click(this.addGlyph.bind(this));
+  }
+
+  load(text) {
+    Glyph.get().load(text);
+    $(Canvas.target).text(`${Glyph.get().text} ${Glyph.get().getCode()}`);
+  }
+
+  clear() {
+    if (!Glyph.get().saved && !confirm('Abandon current glyph?')) return;
+
+    Glyph.clear();
+    MouseHandler.get().clear();
+    StrokeEditor.get().clear();
+    $(Canvas.main).children('path[id^=S]').remove();
+    $(Canvas.main).children('circle').remove();
+    const image = document.getElementById(Canvas.bgImage.substring(1));
+    image.removeAttributeNS('http://www.w3.org/1999/xlink', 'href');
+    $(Canvas.preview1).empty();
+    $(Canvas.preview2).empty();
+  }
+
+  onChange(e) {
+    // TODO: implement
+  }
+
+  onToggleMove(e) {
+    // TODO: implement
+  }
+
+  addGlyph(e) {
+    // TODO: implement
+  }
+}
+
+class StrokeEditor {
+  static instance = undefined;
+  static get() {
+    if (StrokeEditor.instance === undefined) {
+      StrokeEditor.instance = new StrokeEditor();
+    }
+    return StrokeEditor.instance;
   }
 
   constructor() {
@@ -100,12 +145,12 @@ class EditingHandlers {
     $(`input[name=${this.radioGroup}][value='draw']`).prop('checked', true);
   }
 
-  install(name, undoBtn, previewBtn) {
-    $(`input:radio[name=${name}]`).click(() => {
-      const val = $(`input:radio[name=${name}]:checked`).val();
+  install(strokeSelector, editingRadio, undoBtn, previewBtn) {
+    $(`input:radio[name=${editingRadio}]`).click(() => {
+      const val = $(`input:radio[name=${editingRadio}]:checked`).val();
       EditorState.state = val;
     });
-    this.radioGroup = name;
+    this.radioGroup = editingRadio;
 
     $(undoBtn).click(() => {
       // TODO: a better undo

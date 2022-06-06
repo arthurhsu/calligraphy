@@ -42,6 +42,14 @@
   </div>
   <br/>
   <div class="editbuttons">
+    <select id="glyph"></select>
+    <label>
+      <input type="checkbox" id="move" />
+      <img src="move2.png" alt="Move whole glyph" />
+    </label>
+    <input id="add" type="image" src="add.png" title="Add Glyph" />
+    &nbsp; &nbsp;
+    <select id="stroke"></select>
     <label>
       <input type="radio" value="draw" name="edit" checked />
       <img src="pen.png" alt="Draw" />
@@ -58,16 +66,11 @@
     <input id="undo" type="image" src="undo.png" title="Undo" />
     <input id="preview" type="image" src="preview.png" title="Preview" />
   </div>
-  &nbsp;&nbsp;
+  <br/>
   <div class="editbuttons">
     <input id="load" type="image" src="load.png" title="Load" />
     <input id="export" type="image" src="export.png" title="Export" />
-    <input id="new" type="image" src="new.png" title="New" />
-    &nbsp;&nbsp;
-    <label>
-      <input type="checkbox" value="move" name="glyph" />
-      <img src="move2.png" alt="Move whole glyph" />
-    </label>
+    <input id="new" type="image" src="new.png" title="New Word" />
   </div>
   <script>
     // onLoad
@@ -75,8 +78,9 @@
       acquireGlyph();
       setupCanvasHandlers(
           512, '#pad', '#preview1', '#preview2', '#bgImage', '#target');
-      setupEditingHandlers('edit', '#undo', '#preview');
-      setupFunctionHandlers('#load', '#export', '#new');
+      setupGlyphHandlers('#glyph', '#move', '#add');
+      setupStrokeHandlers('#stroke', 'edit', '#undo', '#preview');
+      setupWordHandlers('#load', '#export', '#new');
     })();
   </script>
 </body>
