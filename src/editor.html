@@ -16,8 +16,8 @@
     >
       <image id="bgImage" x=0 y=0 width=512 height=512 stroke=null></image>
     </svg>
-    <input id="xslider" type="range" min="1" max="100" value="50" />
-    <input id="yslider" class="vslider" type="range" min="1" max="100" value="50" />
+    <input id="xslider" type="range" min="1" max="512" value="256" />
+    <input id="yslider" class="vslider" type="range" min="1" max="512" value="256" />
   </div>
   <div class="righthalf">
     <label id="target"></label>
@@ -81,7 +81,7 @@
           512, '#pad', '#preview1', '#preview2', '#bgImage', '#target');
       setupGlyphHandlers('#glyph', '#move', '#add');
       setupStrokeHandlers('#stroke', 'edit', '#undo', '#preview');
-      setupWordHandlers('#load', '#export', '#new');
+      setupWordHandlers('#load', '#export', '#new', '#xslider', '#yslider');
       acquireGlyph();
     })();
   </script>

@@ -19,7 +19,7 @@ function writeFile(fileName, contents) {
 
 function createSVG(tag, data) {
   let ret = document.createElementNS('http://www.w3.org/2000/svg', tag);
-  for (prop in data) {
+  for (let prop in data) {
     ret.setAttributeNS(null, prop, data[prop]);
   }
   return $(ret);
@@ -56,12 +56,12 @@ function setupStrokeHandlers(strokeSelector, editingRadio, undoBtn) {
   StrokeEditor.get().install(strokeSelector, editingRadio, undoBtn);
 }
 
-function setupWordHandlers(loadBtn, exportBtn, newBtn) {
-  $(exportBtn).click(() => {
+function setupWordHandlers(loadBtn, exportBtn, newBtn, xSlider, ySlider) {
+  $(exportBtn).on('click', () => {
     GlyphEditor.get().export();
   });
 
-  $(loadBtn).change(() => {
+  $(loadBtn).on('change', () => {
     if ($(loadBtn).prop('checked')) {
       GlyphEditor.get().loadLegacy();
     } else {
@@ -69,9 +69,17 @@ function setupWordHandlers(loadBtn, exportBtn, newBtn) {
     }
   });
 
-  $(newBtn).click(() => {
+  $(newBtn).on('click', () => {
     GlyphEditor.get().clear();
     acquireGlyph();
+  });
+
+  $(xSlider).on('change', e => {
+    GlyphEditor.get().hshift(e);
+  });
+
+  $(ySlider).on('change', e => {
+    GlyphEditor.get().vshift(e);
   });
 }
 
@@ -100,15 +108,20 @@ class GlyphEditor {
   constructor() {
     this.index = -1;
     this.selectorId = undefined;
+    this.moveCheckboxId = undefined;
     this.text = undefined;
     this.glyphs = [];
+    this.shifting = false;
+    this.xbase = 256;
+    this.ybase = 256;
   }
 
   install(glyphSelector, moveBtn, addBtn) {
     this.selectorId = glyphSelector;
-    $(glyphSelector).change(this.onChange.bind(this));
-    $(moveBtn).change(this.onToggleMove.bind(this));
-    $(addBtn).click(() => {
+    this.moveCheckboxId = moveBtn;
+    $(glyphSelector).on('change', this.onChange.bind(this));
+    $(moveBtn).on('change', this.onToggleMove.bind(this));
+    $(addBtn).on('click', () => {
       this.addGlyph();
       this.resetCanvas();
     });
@@ -202,7 +215,7 @@ class GlyphEditor {
     $(Canvas.preview2).empty();
   }
 
-  onChange(e) {
+  onChange() {
     const newIndex = $(this.selectorId).val();
     if (newIndex != this.index) {
       this.index = newIndex;
@@ -211,8 +224,24 @@ class GlyphEditor {
     }
   }
 
-  onToggleMove(e) {
-    // TODO: implement
+  onToggleMove() {
+    this.shifting = $(this.moveCheckboxId).prop('checked');
+  }
+
+  hshift(e) {
+    if (this.shifting) {
+      const offset = e.target.valueAsNumber - this.xbase;
+      this.xbase = e.target.valueAsNumber;
+      this.getCurrentGlyph().hshift(offset);
+    }
+  }
+
+  vshift(e) {
+    if (this.shifting) {
+      const offset = e.target.valueAsNumber - this.ybase;
+      this.ybase = e.target.valueAsNumber;
+      this.getCurrentGlyph().vshift(offset);
+    }
   }
 
   addGlyph() {
@@ -244,15 +273,15 @@ class StrokeEditor {
 
   install(strokeSelector, editingRadio, undoBtn) {
     this.strokeSelector = strokeSelector;
-    $(strokeSelector).change(this.onChange.bind(this));
+    $(strokeSelector).on('change', this.onChange.bind(this));
 
-    $(`input:radio[name=${editingRadio}]`).click(() => {
+    $(`input:radio[name=${editingRadio}]`).on('click', () => {
       const val = $(`input:radio[name=${editingRadio}]:checked`).val();
       EditorState.state = val;
     });
     this.radioGroup = editingRadio;
 
-    $(undoBtn).click(this.undo.bind(this));
+    $(undoBtn).on('click', this.undo.bind(this));
   }
 
   onChange() {
@@ -387,6 +416,16 @@ class Glyph {
     $(Canvas.preview2).empty();
     this.renderStrokes(Canvas.preview1);
     this.renderStrokes(Canvas.preview2);
+  }
+
+  hshift(offset) {
+    this.strokes.forEach(s => s.hshift(offset));
+    this.updatePreviews();
+  }
+
+  vshift(offset) {
+    this.strokes.forEach(s => s.vshift(offset));
+    this.updatePreviews();
   }
 }
 
@@ -611,6 +650,28 @@ class Stroke {
       s.get(0).setAttributeNS(null, 'stroke', 'blue');
     });
     this.activated = false;
+  }
+
+  hshift(offset) {
+    this.vertices.forEach((v, i) => {
+      const node = document.getElementById(this.vertexIds[i]);
+      v[0] += offset;
+      if (node) {
+        node.setAttributeNS(null, 'cx', v[0]);
+      }
+    });
+    this.updateSplines();
+  }
+
+  vshift(offset) {
+    this.vertices.forEach((v, i) => {
+      const node = document.getElementById(this.vertexIds[i]);
+      v[1] += offset;
+      if (node) {
+        node.setAttributeNS(null, 'cy', v[1]);
+      }
+    });
+    this.updateSplines();
   }
 }
 
