@@ -64,7 +64,6 @@
     </label>
     &nbsp;&nbsp;
     <input id="undo" type="image" src="undo.png" title="Undo" />
-    <input id="preview" type="image" src="preview.png" title="Preview" />
   </div>
   <br/>
   <div class="editbuttons">
@@ -75,12 +74,12 @@
   <script>
     // onLoad
     (function() {
-      acquireGlyph();
       setupCanvasHandlers(
           512, '#pad', '#preview1', '#preview2', '#bgImage', '#target');
       setupGlyphHandlers('#glyph', '#move', '#add');
       setupStrokeHandlers('#stroke', 'edit', '#undo', '#preview');
       setupWordHandlers('#load', '#export', '#new');
+      acquireGlyph();
     })();
   </script>
 </body>

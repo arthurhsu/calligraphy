@@ -1,3 +1,4 @@
+// @ts-check
 /**
  * @license
  * Copyright 2015 Arthur Hsu. Distributed under Creative Commons License.
@@ -16,8 +17,12 @@ function writeFile(fileName, contents) {
   writer.close();
 }
 
-function SVG(tag) {
-  return document.createElementNS('http://www.w3.org/2000/svg', tag);
+function createSVG(tag, data) {
+  let ret = document.createElementNS('http://www.w3.org/2000/svg', tag);
+  for (prop in data) {
+    ret.setAttributeNS(null, prop, data[prop]);
+  }
+  return $(ret);
 }
 
 function acquireGlyph() {
@@ -47,17 +52,17 @@ function setupGlyphHandlers(glyphSelector, moveBtn, addBtn) {
   GlyphEditor.get().install(glyphSelector, moveBtn, addBtn);
 }
 
-function setupStrokeHandlers(strokeSelector, editingRadio, undoBtn, confirmBtn) {
-  StrokeEditor.get().install(strokeSelector, editingRadio, undoBtn, confirmBtn);
+function setupStrokeHandlers(strokeSelector, editingRadio, undoBtn) {
+  StrokeEditor.get().install(strokeSelector, editingRadio, undoBtn);
 }
 
 function setupWordHandlers(loadBtn, exportBtn, newBtn) {
   $(exportBtn).click(() => {
-    Glyph.get().export();
+    GlyphEditor.get().export();
   });
 
   $(loadBtn).click(() => {
-    Glyph.get().loadLegacy();
+    GlyphEditor.get().loadLegacy();
   });
 
   $(newBtn).click(() => {
@@ -78,33 +83,105 @@ class Canvas {
 class GlyphEditor {
   static instance = undefined;
   static get() {
-    if (GlyphEditor.instance === undefined) {     
+    if (GlyphEditor.instance === undefined) {
       GlyphEditor.instance = new GlyphEditor();
     }
     return GlyphEditor.instance;
   }
 
+  static current() {
+    return GlyphEditor.get().getCurrentGlyph();
+  }
+
   constructor() {
     this.index = -1;
     this.selectorId = undefined;
+    this.text = undefined;
+    this.glyphs = [];
   }
 
   install(glyphSelector, moveBtn, addBtn) {
     this.selectorId = glyphSelector;
     $(glyphSelector).change(this.onChange.bind(this));
     $(moveBtn).change(this.onToggleMove.bind(this));
-    $(addBtn).click(this.addGlyph.bind(this));
+    $(addBtn).click(() => {
+      this.addGlyph();
+      this.resetCanvas();
+    });
+  }
+
+  getCurrentGlyph() {
+    if (this.index == -1) {
+      this.addGlyph();
+    }
+    return this.glyphs[this.index];
+  }
+
+  getCode() {
+    return this.text.charCodeAt(0).toString(16).toUpperCase();
+  }
+
+  getPath() {
+    const code = this.getCode();
+    return `/data/${code.slice(0, 1)}/${code}.json`;
+  }
+
+  getLegacyPath() {
+    const code = this.getCode();
+    return `/assets/${code.slice(0, 1)}/${code}.png`;
   }
 
   load(text) {
-    Glyph.get().load(text);
-    $(Canvas.target).text(`${Glyph.get().text} ${Glyph.get().getCode()}`);
+    this.text = text;
+    $(this.selectorId).empty();
+    return fetch(this.getPath()).then(resp => {
+      return resp.ok ? resp.json() : Promise.resolve(null);
+    }).then(json => {
+      if (json !== null) {
+        json.glyphs.forEach((g, i) => {
+          this.addGlyph();
+          this.glyphs[i].deserialize(g);
+        }, this);
+        $(`${this.selectorId} option:eq(0)`).prop('selected', true);
+        this.index = 0;
+        $(Canvas.target).text(`${this.text} ${this.getCode()}`);
+        StrokeEditor.get().inflate(this.glyphs[0]);
+      }
+    }, this);
+  }
+
+  // Load and render legacy asset
+  loadLegacy() {
+    if (this.index == -1) {
+      this.addGlyph();
+    }
+    const image = document.getElementById(Canvas.bgImage.substring(1));
+    image.setAttributeNS(
+        'http://www.w3.org/1999/xlink', 'href', this.getLegacyPath());
+    $(Canvas.bgImage).attr('width', Canvas.size);
+    $(Canvas.bgImage).attr('height', Canvas.size);
+  }
+
+  export() {
+    const ret = {
+      'code': this.getCode(),
+      'text': this.text,
+      'glyphs': this.glyphs.map(g => {
+        return {'strokes': g.strokes.map(s => s.serialize())};
+      })
+    };
+
+    writeFile(`${this.getCode()}.json`, JSON.stringify(ret));
   }
 
   clear() {
-    if (!Glyph.get().saved && !confirm('Abandon current glyph?')) return;
+    // TODO: implement dirty bits
+    this.index = -1;
+    this.glyphs = [];
+    this.resetCanvas();
+  }
 
-    Glyph.clear();
+  resetCanvas() {
     MouseHandler.get().clear();
     StrokeEditor.get().clear();
     $(Canvas.main).children('path[id^=S]').remove();
@@ -116,15 +193,23 @@ class GlyphEditor {
   }
 
   onChange(e) {
-    // TODO: implement
+    const newIndex = $(this.selectorId).val();
+    if (newIndex != this.index) {
+      this.index = newIndex;
+      this.resetCanvas();
+      this.getCurrentGlyph().render();
+    }
   }
 
   onToggleMove(e) {
     // TODO: implement
   }
 
-  addGlyph(e) {
-    // TODO: implement
+  addGlyph() {
+    this.index = this.glyphs.length;
+    this.glyphs.push(new Glyph());
+    $(this.selectorId).append(
+        `<option value=${this.index}>G${this.index}</option>`);
   }
 }
 
@@ -139,27 +224,56 @@ class StrokeEditor {
 
   constructor() {
     this.radioGroup = undefined;
+    this.strokeSelector = undefined;
+    this.currentStroke = undefined;
   }
 
   clear() {
     $(`input[name=${this.radioGroup}][value='draw']`).prop('checked', true);
   }
 
-  install(strokeSelector, editingRadio, undoBtn, previewBtn) {
+  install(strokeSelector, editingRadio, undoBtn) {
+    this.strokeSelector = strokeSelector;
+    $(strokeSelector).change(this.onChange.bind(this));
+
     $(`input:radio[name=${editingRadio}]`).click(() => {
       const val = $(`input:radio[name=${editingRadio}]:checked`).val();
       EditorState.state = val;
     });
     this.radioGroup = editingRadio;
 
-    $(undoBtn).click(() => {
-      // TODO: a better undo
-      Glyph.get().removeLastStroke();
-    });
+    $(undoBtn).click(this.undo.bind(this));
+  }
 
-    $(previewBtn).click(() => {
-      Glyph.get().updatePreviews();
-    });
+  onChange() {
+    if (this.currentStroke !== undefined) {
+      this.currentStroke.deactivate();
+    }
+
+    this.currentStroke =
+        GlyphEditor.current().getStroke($(this.strokeSelector).val());
+    this.currentStroke.activate();
+    MouseHandler.get().setStroke(this.currentStroke);
+  }
+
+  undo(e) {
+    // TODO: a better undo
+  }
+
+  inflate(glyph) {
+    // The glyph is just loaded, inflate the stroke info
+    for (let i = 0; i < glyph.getNumberOfStrokes(); ++i) {
+      $(this.strokeSelector).append(`<option value=${i}>S${i}</option>`);
+    }
+    $(this.strokeSelector).val(glyph.getNumberOfStrokes() - 1);
+  }
+
+  getNewStroke(id) {
+    $(this.strokeSelector).append(`<option value=${id}>S${id}</option>`);
+    $(this.strokeSelector).val(id);
+    const ret = new Stroke(id);
+    this.currentStroke = ret;
+    return ret;
   }
 }
 
@@ -183,51 +297,34 @@ class Guides {
   box(width, pct) {
     const l = width * (100 - pct) / 200;
     const r = width - l;
-    const command = `M${l} ${l} L${[r, l, r, r, l, r, l, l].join(' ')}`;
-    return $(SVG('path'))
-        .attr('id', 'rc' + pct)
-        .attr('fill', 'none')
-        .attr('stroke', 'red')
-        .attr('stroke-dasharray', '5,5')
-        .attr('d', command)
-        .appendTo(Canvas.main);
+    createSVG('path', {
+      'id': `rc${pct}`,
+      'fill': 'none',
+      'stroke': 'red',
+      'stroke-dasharray': '5,5',
+      'd': `M${l} ${l} L${[r, l, r, r, l, r, l, l].join(' ')}`,
+    }).appendTo(Canvas.main);
   }
 
   line(x1, y1, x2, y2) {
-    $(SVG('line'))
-        .attr('x1', x1)
-        .attr('y1', y1)
-        .attr('x2', x2)
-        .attr('y2', y2)
-        .attr('stroke', 'red')
-        .attr('stroke-dasharray', '5,5')
-        .appendTo(Canvas.main);
+    createSVG('line', {
+      'x1': x1,
+      'y1': y1,
+      'x2': x2,
+      'y2': y2,
+      'stroke': 'red',
+      'stroke-dasharray': '5,5',
+    }).appendTo(Canvas.main);
   }
 }
 
 class Glyph {
-  static instance = undefined;
-
   constructor() {
     this.strokes = [];
-    this.text = undefined;
-    this.saved = true;
-  }
-
-  static get() {
-    if (Glyph.instance == undefined) {
-      Glyph.instance = new Glyph();
-    }
-    return Glyph.instance;
-  }
-
-  static clear() {
-    Glyph.instance = undefined;
   }
 
   addStroke(s) {
     this.strokes.push(s);
-    this.saved = false;
   }
 
   getNumberOfStrokes() {
@@ -238,16 +335,12 @@ class Glyph {
     return this.strokes[i];
   }
 
-  getLastStroke() {
-    return this.getStroke(this.getNumberOfStrokes() - 1);
-  }
-
   removeStroke(i) {
     this.strokes.splice(i, 1);
   }
 
-  removeLastStroke() {
-    this.eraseStroke(this.strokes.pop());
+  getNewStroke() {
+    return StrokeEditor.get().getNewStroke(this.strokes.length);
   }
 
   eraseStroke(stroke) {
@@ -255,98 +348,60 @@ class Glyph {
     stroke.splineIds.forEach(id => $(`#${id}`).remove());
   }
 
-  getCode() {
-    return this.text.charCodeAt(0).toString(16).toUpperCase();
-  }
-
-  getPath() {
-    const code = this.getCode();
-    return `/data/${code.slice(0, 1)}/${code}.json`;
-  }
-
-  getLegacyPath() {
-    const code = this.getCode();
-    return `/assets/${code.slice(0, 1)}/${code}.png`;
-  }
-
-  render(json) {
-    const g = json.glyphs[0];
-    this.strokes = g.strokes.map((s, i) => Stroke.deserialize(i, s));
+  render() {
+    this.renderStrokes(Canvas.main);
     this.updatePreviews();
   }
 
-  load(s) {
-    this.text = s;
-    return fetch(this.getPath(s)).then(resp => {
-      return resp.ok ? resp.json() : Promise.resolve(null);
-    }).then(json => {
-      if (json !== null) {
-        // TODO: solve multi glyph
-        this.render(json);
-      }
-    }, this);
+  deserialize(json) {
+    this.strokes = json.strokes.map((s, i) => Stroke.deserialize(i, s));
   }
 
-  // Load and render legacy asset
-  loadLegacy() {
-    const image = document.getElementById(Canvas.bgImage.substring(1));
-    image.setAttributeNS(
-        'http://www.w3.org/1999/xlink', 'href', this.getLegacyPath());
-    $(Canvas.bgImage).attr('width', Canvas.size);
-    $(Canvas.bgImage).attr('height', Canvas.size);
-  }
-
-  export() {
-    // TODO: handle multi-glyph
-    const ret = {
-      'code': this.getCode(this.text),
-      'text': this.text,
-      'glyphs': [{'strokes': this.strokes.map(s => s.serialize())}]
-    };
-
-    writeFile(`${this.getCode()}.json`, JSON.stringify(ret));
-    this.saved = true;
+  renderStrokes(target) {
+    this.strokes.forEach((s, i) => {
+      s.splines.forEach((p, j) => {
+        createSVG('path', {
+          'id': `S${i}s${j}`,
+          'fill': 'none',
+          'stroke': 'blue',
+          'stroke-width': 16,
+          'stroke-linecap': 'round',
+          'd': p.attr('d')
+        }).appendTo(target);
+      });
+    });
   }
 
   updatePreviews() {
     $(Canvas.preview1).empty();
     $(Canvas.preview2).empty();
-    this.strokes.forEach(s => {
-      s.splines.forEach(p => {
-        let e = $(SVG('path'))
-            .attr('fill', 'none')
-            .attr('stroke', 'blue')
-            .attr('stroke-width', 16)
-            .attr('stroke-linecap', 'round')
-            .attr('d', $(p).attr('d'));
-        $(Canvas.preview1).append(e.clone());
-        $(Canvas.preview2).append(e);
-      });
-    });
+    this.renderStrokes(Canvas.preview1);
+    this.renderStrokes(Canvas.preview2);
   }
 }
 
 class Stroke {
-  constructor(id = -1) {
-    this.id = (id == -1) ? Glyph.get().getNumberOfStrokes() : id;
+  constructor(id) {
+    this.id = id;
     this.vertices = [];  // vertices
     this.vertexIds = [];  // ids for vertices
     this.splines = [];  // splines
     this.splineIds = [];  // ids for splines
+    this.activated = false;
     this.unselectDot();
   }
 
   static deserialize(id, json) {
     const ret = new Stroke(id);
     for (let i = 0; i < json.dots.length; i += 2) {
-      ret.drawDot(json.dots[i], json.dots[i + 1]);
+      ret.vertexIds.push(`S${ret.id}c${ret.vertices.length}`);
+      ret.vertices.push([json.dots[i], json.dots[i + 1]]);
     }
     ret.finish();
     return ret;
   }
 
   serialize() {
-    // TODO: fix data2svg.js, data structure changed
     return {
       'dots': this.vertices.flat(),
       'splines': this.splineIds.map(id => $(`#${id}`).attr('d'))
@@ -360,29 +415,34 @@ class Stroke {
   // Draw a dot
   drawDot(x, y) {
     const id = `S${this.id}c${this.vertices.length}`;
-    $(SVG('circle'))
-      .attr('id', id)
-      .attr('r', 8)
-      .attr('cx', x)
-      .attr('cy', y)
-      .attr('fill', 'none')
-      .attr('stroke', 'red')
-      .attr('stroke-width', 3)
-      .appendTo(Canvas.main);
+    createSVG('circle', {
+      'id': id,
+      'r': 8,
+      'cx': x,
+      'cy': y,
+      'fill': 'none',
+      'stroke': 'red',
+      'stroke-width': 3,
+    }).appendTo(Canvas.main);
     this.vertices.push([x, y]);
     this.vertexIds.push(id);
   }
 
   addPath() {
     const id = `S${this.id}s${this.splines.length}`;
-    let s = SVG('path');
-    $(s)
-      .attr('id', id)
-      .attr('fill', 'none')
-      .attr('stroke', 'green')
-      .attr('stroke-width', 16)
-      .attr('stroke-linecap', 'round')
-      .insertBefore('#S0c0');
+    let s = createSVG('path', {
+      'id': id,
+      'fill': 'none',
+      'stroke': this.activated ? 'green' : 'blue',
+      'stroke-width': 16,
+      'stroke-linecap': 'round',
+    });
+    const dotId = `#S${this.id}c0`;
+    if (document.getElementById(dotId)) {
+      s.insertBefore(dotId);
+    } else {
+      s.appendTo(Canvas.main);
+    }
     this.splines.push(s);
     this.splineIds.push(id);
   }
@@ -456,7 +516,7 @@ class Stroke {
     const py = this.computeControlPoints(y);
 
     for (let i = 0; i < this.vertices.length - 1; ++i) {
-      this.splines[i].setAttributeNS(
+      this.splines[i].get(0).setAttributeNS(
           null,
           'd',
           this.createPath(
@@ -514,6 +574,34 @@ class Stroke {
       this.unselectDot();
     }
   }
+
+  activate() {
+    if (this.activated == true) return;
+
+    for (let i = 0; i < this.vertexIds.length; ++i) {
+      createSVG('circle', {
+        'id': this.vertexIds[i],
+        'r': 8,
+        'cx': this.vertices[i][0],
+        'cy': this.vertices[i][1],
+        'fill': 'none',
+        'stroke': 'red',
+        'stroke-width': 3,
+      }).appendTo(Canvas.main);
+    }
+    this.splines.forEach(s => {
+      s.get(0).setAttributeNS(null, 'stroke', 'green');
+    });
+    this.activated = true;
+  }
+
+  deactivate() {
+    $(Canvas.main).children('circle').remove();
+    this.splines.forEach(s => {
+      s.get(0).setAttributeNS(null, 'stroke', 'blue');
+    });
+    this.activated = false;
+  }
 }
 
 class MouseHandler {
@@ -544,19 +632,30 @@ class MouseHandler {
   }
 
   ensureStroke() {
-    if (this.currentStroke === undefined) {
-      this.currentStroke = new Stroke();
+    if (this.currentStroke !== undefined) {
+      this.currentStroke.deactivate();
     }
+    this.currentStroke = GlyphEditor.current().getNewStroke();
+    this.currentStroke.activated = true;
+  }
+
+  setStroke(s) {
+    this.currentStroke = s;
+  }
+
+  unsetStroke() {
+    this.currentStroke = undefined;
   }
 
   mouseup(e) {
-    if (e.button != 0) return;
+    if (e.button != 0 || !this.tracking) return;
 
     if (EditorState.state == EditorState.DRAW) {
       this.drawMouseup(e);
     } else {
       this.tuneMouseup(e);
     }
+    GlyphEditor.current().updatePreviews();
   }
 
   drawMouseup(e) {
@@ -564,13 +663,12 @@ class MouseHandler {
     this.tracking = false;
     if (!this.currentStroke.isEmpty()) {
       this.currentStroke.finish();
-      Glyph.get().addStroke(this.currentStroke);
-      this.currentStroke = undefined;
+      GlyphEditor.current().addStroke(this.currentStroke);
     }
   }
 
   tuneMouseup(e) {
-    Glyph.get().getLastStroke().unselectDot();
+    this.currentStroke.unselectDot();
     this.tracking = false;
   }
 
@@ -583,11 +681,12 @@ class MouseHandler {
   }
 
   drawMousemove(e) {
-    if (this.tracking) {
+    if (this.tracking && this.currentStroke) {
       // pick points have at least delta of 20pt
       const ptX = e.offsetX;
       const ptY = e.offsetY;
-      if (Math.max(Math.abs(ptX - this.lastX), Math.abs(ptY - this.lastY)) > 20) {
+      if (Math.max(
+          Math.abs(ptX - this.lastX), Math.abs(ptY - this.lastY)) > 30) {
         this.currentStroke.drawDot(ptX, ptY);
         this.lastX = ptX;
         this.lastY = ptY;
@@ -596,8 +695,8 @@ class MouseHandler {
   }
 
   tuneMousemove(e) {
-    if (this.tracking) {
-      Glyph.get().getLastStroke().moveDot(e.clientX, e.clientY);
+    if (this.tracking && this.currentStroke) {
+      this.currentStroke.moveDot(e.clientX, e.clientY);
     }
   }
 
@@ -620,7 +719,11 @@ class MouseHandler {
   }
 
   tuneMousedown(e) {
-    const stroke = Glyph.get().getLastStroke();
+    if (this.currentStroke === undefined) {
+      return;
+    }
+
+    const stroke = this.currentStroke;
     if (EditorState.state == EditorState.MOVE) {
       if (stroke.selectDot(e.clientX, e.clientY)) {
         this.tracking = true;
@@ -628,6 +731,7 @@ class MouseHandler {
     } else if (EditorState.state == EditorState.DELETE) {
       if (stroke.selectDot(e.clientX, e.clientY)) {
         stroke.removeDot();
+        GlyphEditor.current().updatePreviews();
       }
     }
   }
