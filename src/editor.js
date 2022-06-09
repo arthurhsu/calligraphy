@@ -61,8 +61,12 @@ function setupWordHandlers(loadBtn, exportBtn, newBtn) {
     GlyphEditor.get().export();
   });
 
-  $(loadBtn).click(() => {
-    GlyphEditor.get().loadLegacy();
+  $(loadBtn).change(() => {
+    if ($(loadBtn).prop('checked')) {
+      GlyphEditor.get().loadLegacy();
+    } else {
+      GlyphEditor.get().clearBackground();
+    }
   });
 
   $(newBtn).click(() => {
@@ -146,6 +150,7 @@ class GlyphEditor {
         this.index = 0;
         $(Canvas.target).text(`${this.text} ${this.getCode()}`);
         StrokeEditor.get().inflate(this.glyphs[0]);
+        this.glyphs[0].updatePreviews();
       }
     }, this);
   }
@@ -155,11 +160,17 @@ class GlyphEditor {
     if (this.index == -1) {
       this.addGlyph();
     }
+    
     const image = document.getElementById(Canvas.bgImage.substring(1));
     image.setAttributeNS(
         'http://www.w3.org/1999/xlink', 'href', this.getLegacyPath());
     $(Canvas.bgImage).attr('width', Canvas.size);
     $(Canvas.bgImage).attr('height', Canvas.size);
+  }
+
+  clearBackground() {
+    const image = document.getElementById(Canvas.bgImage.substring(1));
+    image.removeAttributeNS('http://www.w3.org/1999/xlink', 'href');
   }
 
   export() {
@@ -186,8 +197,7 @@ class GlyphEditor {
     StrokeEditor.get().clear();
     $(Canvas.main).children('path[id^=S]').remove();
     $(Canvas.main).children('circle').remove();
-    const image = document.getElementById(Canvas.bgImage.substring(1));
-    image.removeAttributeNS('http://www.w3.org/1999/xlink', 'href');
+    this.clearBackground();
     $(Canvas.preview1).empty();
     $(Canvas.preview2).empty();
   }
