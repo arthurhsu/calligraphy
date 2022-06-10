@@ -173,7 +173,7 @@ class GlyphEditor {
     if (this.index == -1) {
       this.addGlyph();
     }
-    
+
     const image = document.getElementById(Canvas.bgImage.substring(1));
     image.setAttributeNS(
         'http://www.w3.org/1999/xlink', 'href', this.getLegacyPath());
@@ -487,7 +487,7 @@ class Stroke {
       'stroke-linecap': 'round',
     });
     const dotId = `#S${this.id}c0`;
-    if (document.getElementById(dotId)) {
+    if (document.querySelector(dotId)) {
       s.insertBefore(dotId);
     } else {
       s.appendTo(Canvas.main);
