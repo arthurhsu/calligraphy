@@ -48,8 +48,8 @@ function setupCanvasHandlers(size, main, preview1, preview2, bgImage, target) {
   MouseHandler.get().install();
 }
 
-function setupGlyphHandlers(glyphSelector, moveBtn, addBtn) {
-  GlyphEditor.get().install(glyphSelector, moveBtn, addBtn);
+function setupGlyphHandlers(glyphSelector, moveCheck, addBtn, zoomBtn) {
+  GlyphEditor.get().install(glyphSelector, moveCheck, addBtn, zoomBtn);
 }
 
 function setupStrokeHandlers(strokeSelector, editingRadio, undoBtn) {
@@ -116,14 +116,24 @@ class GlyphEditor {
     this.ybase = 256;
   }
 
-  install(glyphSelector, moveBtn, addBtn) {
+  install(glyphSelector, moveCheck, addBtn, zoomBtn) {
     this.selectorId = glyphSelector;
-    this.moveCheckboxId = moveBtn;
+    this.moveCheckboxId = moveCheck;
     $(glyphSelector).on('change', this.onChange.bind(this));
-    $(moveBtn).on('change', this.onToggleMove.bind(this));
+    $(moveCheck).on('change', this.onToggleMove.bind(this));
     $(addBtn).on('click', () => {
       this.addGlyph();
       this.resetCanvas();
+    });
+    $(zoomBtn).on('click', () => {
+      const image = document.getElementById(Canvas.bgImage.substring(1));
+      const src = image.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
+      if (src.length) {
+        const pct = parseInt(prompt('Zoom percentage?', '100'));
+        const shift = (100 - pct) / 2;
+        image.style.transform =
+            `scale(${pct/100}) translate(${shift}%, ${shift}%)`;
+      }
     });
   }
 
