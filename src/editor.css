@@ -28,9 +28,20 @@ div {
   padding: 10px;
 }
 
+.righthalf label {
+  pointer-events: none;
+  background-color: blue;
+  color: white;
+  border-radius: 5px;
+  margin: 5px;
+  font-family: system-ui;
+  font-size: xx-large;
+}
+
 .preview101 {
   width: 101px;
   height: 101px;
+  margin: 5px;
 }
 
 .preview101 > svg {
@@ -42,6 +53,7 @@ div {
 .preview202 {
   width: 202px;
   height: 202px;
+  margin: 5px;
 }
 
 .preview202 > svg {
@@ -115,4 +127,34 @@ input[type="range"] {
   top: 256px;
   left: 276px;
   transform: rotate(90deg);
+}
+
+.tagcontainer {
+  display: flex;
+  flex-flow: row wrap;
+}
+
+.tag {
+  pointer-events: none;
+  background-color: cornflowerblue;
+  color: white;
+  padding: 5px;
+  margin: 5px;
+  border-radius: 5px;
+  font-family: system-ui;
+  font-size: x-large;
+}
+
+.tag::before {
+  pointer-events: all;
+  display: inline-block;
+  content: 'x';  
+  height: 30px;
+  width: 30px;
+  margin-right: 5px;
+  text-align: center;
+  color: white;
+  background-color: blueviolet;
+  border-radius: 5px;
+  cursor: pointer;
 }

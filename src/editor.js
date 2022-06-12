@@ -36,20 +36,24 @@ function acquireGlyph() {
   }
 }
 
-function setupCanvasHandlers(size, main, preview1, preview2, bgImage, target) {
+function setupCanvasHandlers(
+    size, main, preview1, preview2, bgImage, target, tagContainer) {
   Canvas.size = size;
   Canvas.main = main;
   Canvas.preview1 = preview1;
   Canvas.preview2 = preview2;
   Canvas.bgImage = bgImage;
   Canvas.target = target;
+  Canvas.tagContainer = tagContainer;
 
   Guides.setup(size);
   MouseHandler.get().install();
 }
 
-function setupGlyphHandlers(glyphSelector, moveCheck, addBtn, zoomBtn) {
-  GlyphEditor.get().install(glyphSelector, moveCheck, addBtn, zoomBtn);
+function setupGlyphHandlers(
+    glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn) {
+  GlyphEditor.get().install(
+      glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn);
 }
 
 function setupStrokeHandlers(strokeSelector, editingRadio, undoBtn) {
@@ -90,6 +94,7 @@ class Canvas {
   static preview2;
   static bgImage;
   static target;
+  static tagContainer;
 }
 
 class GlyphEditor {
@@ -116,7 +121,7 @@ class GlyphEditor {
     this.ybase = 256;
   }
 
-  install(glyphSelector, moveCheck, addBtn, zoomBtn) {
+  install(glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn) {
     this.selectorId = glyphSelector;
     this.moveCheckboxId = moveCheck;
     $(glyphSelector).on('change', this.onChange.bind(this));
@@ -124,6 +129,7 @@ class GlyphEditor {
     $(addBtn).on('click', () => {
       this.addGlyph();
       this.resetCanvas();
+      this.getCurrentGlyph().addTag('楷');  // add default tag
     });
     $(zoomBtn).on('click', () => {
       const image = document.getElementById(Canvas.bgImage.substring(1));
@@ -134,6 +140,11 @@ class GlyphEditor {
         image.style.transform =
             `scale(${pct/100}) translate(${shift}%, ${shift}%)`;
       }
+    });
+    $(hashtagBtn).on('click', () => {
+      let tag = prompt('Tag name?', '楷');
+      if (tag.startsWith('#')) tag = tag.substring(1);
+      GlyphEditor.current().addTag(tag);
     });
   }
 
@@ -171,10 +182,12 @@ class GlyphEditor {
         }, this);
         $(`${this.selectorId} option:eq(0)`).prop('selected', true);
         this.index = 0;
-        $(Canvas.target).text(`${this.text} ${this.getCode()}`);
         StrokeEditor.get().inflate(this.glyphs[0]);
         this.glyphs[0].updatePreviews();
+      } else {
+        this.getCurrentGlyph().addTag('楷');
       }
+      $(Canvas.target).text(`${this.text} ${this.getCode()}`);
     }, this);
   }
 
@@ -200,9 +213,7 @@ class GlyphEditor {
     const ret = {
       'code': this.getCode(),
       'text': this.text,
-      'glyphs': this.glyphs.map(g => {
-        return {'strokes': g.strokes.map(s => s.serialize())};
-      })
+      'glyphs': this.glyphs.map(g => g.serialize()),
     };
 
     writeFile(`${this.getCode()}.json`, JSON.stringify(ret));
@@ -223,6 +234,7 @@ class GlyphEditor {
     this.clearBackground();
     $(Canvas.preview1).empty();
     $(Canvas.preview2).empty();
+    $(Canvas.tagContainer).empty();
   }
 
   onChange() {
@@ -370,6 +382,7 @@ class Guides {
 class Glyph {
   constructor() {
     this.strokes = [];
+    this.tags = [];
   }
 
   addStroke(s) {
@@ -402,8 +415,16 @@ class Glyph {
     this.updatePreviews();
   }
 
+  serialize() {
+    return {
+      'tags': this.tags,
+      'strokes': this.strokes.map(s => s.serialize()),
+    };
+  }
+
   deserialize(json) {
     this.strokes = json.strokes.map((s, i) => Stroke.deserialize(i, s));
+    json.tags.forEach(t => this.addTag(t));
   }
 
   renderStrokes(target) {
@@ -436,6 +457,21 @@ class Glyph {
   vshift(offset) {
     this.strokes.forEach(s => s.vshift(offset));
     this.updatePreviews();
+  }
+
+  addTag(tag) {
+    if (this.tags.indexOf(tag) == -1) {
+      const tagId = `ht${this.tags.length}`;
+      $(Canvas.tagContainer).append(`<p id="${tagId}" class="tag">${tag}</p>`);
+      this.tags.push(tag);
+      $('.tag').on('click', this.removeTag.bind(this));
+    }
+  }
+
+  removeTag(e) {
+    const index = this.tags.indexOf(e.target.textContent);
+    this.tags.splice(index, 1);
+    $(`#${e.target.id}`).remove();
   }
 }
 
