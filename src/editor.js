@@ -285,6 +285,14 @@ class GlyphEditor {
     $(this.selectorId).append(
         `<option value=${this.index}>G${this.index}</option>`);
   }
+
+  removeLastStroke() {
+    const index = this.getCurrentGlyph().removeStroke(-1);
+    if (index >= 0) {
+      this.getCurrentGlyph().updatePreviews();
+    }
+    return index;
+  }
 }
 
 class StrokeEditor {
@@ -331,7 +339,25 @@ class StrokeEditor {
   }
 
   undo(e) {
-    // TODO: a better undo
+    switch (EditorState.state) {
+      case EditorState.DRAW:
+        const index = GlyphEditor.get().removeLastStroke();
+        if (index > 0) {
+          $(`${this.strokeSelector} option[value='${index}']`).remove();
+        }
+        break;
+
+      case EditorState.DELETE:
+        // TODO
+        break;
+
+      case EditorState.MOVE:
+        // TODO
+        break;
+      
+      default:
+        break;
+    }
   }
 
   inflate(glyph) {
@@ -411,16 +437,16 @@ class Glyph {
   }
 
   removeStroke(i) {
-    this.strokes.splice(i, 1);
+    const index = (i < 0) ? this.strokes.length - 1 : i;
+    if (index < 0) return index;
+    const stroke =  this.strokes.splice(index, 1)[0];
+    stroke.vertexIds.forEach(id => $(`#${id}`).remove());
+    stroke.splineIds.forEach(id => $(`#${id}`).remove());
+    return index;
   }
 
   getNewStroke() {
     return StrokeEditor.get().getNewStroke(this.strokes.length);
-  }
-
-  eraseStroke(stroke) {
-    stroke.vertexIds.forEach(id => $(`#${id}`).remove());
-    stroke.splineIds.forEach(id => $(`#${id}`).remove());
   }
 
   render() {
