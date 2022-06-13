@@ -51,9 +51,9 @@ function setupCanvasHandlers(
 }
 
 function setupGlyphHandlers(
-    glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn) {
+    glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn) {
   GlyphEditor.get().install(
-      glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn);
+      glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn);
 }
 
 function setupStrokeHandlers(strokeSelector, editingRadio, undoBtn) {
@@ -121,7 +121,7 @@ class GlyphEditor {
     this.ybase = 256;
   }
 
-  install(glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn) {
+  install(glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn) {
     this.selectorId = glyphSelector;
     this.moveCheckboxId = moveCheck;
     $(glyphSelector).on('change', this.onChange.bind(this));
@@ -145,6 +145,19 @@ class GlyphEditor {
       let tag = prompt('Tag name?', '楷');
       if (tag.startsWith('#')) tag = tag.substring(1);
       GlyphEditor.current().addTag(tag);
+    });
+    $(importBtn).on('click', () => {
+      navigator.clipboard.read().then(items => {
+        const item = items[0];
+        return item.getType(item.types[0]);
+      }).then(blob => {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          document.getElementById(Canvas.bgImage.substring(1)).setAttributeNS(
+              'http://www.w3.org/1999/xlink', 'href', ev.target.result);
+        };
+        reader.readAsDataURL(blob);
+      });
     });
   }
 

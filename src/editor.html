@@ -77,6 +77,7 @@
     </label>
     <input id="zoom" type="image" src="zoom.png" alt="Zoom background image" />
     <input id="export" type="image" src="export.png" title="Export" />
+    <input id="import" type="image" src="import.png" title="Impport from clipboard" />
     <input id="new" type="image" src="new.png" title="New Word" />
   </div>
   <script>
@@ -85,7 +86,8 @@
       setupCanvasHandlers(
           512, '#pad', '#preview1', '#preview2', '#bgImage', '#target',
           '#tagbin');
-      setupGlyphHandlers('#glyph', '#move', '#add', '#zoom', '#hashtag');
+      setupGlyphHandlers(
+          '#glyph', '#move', '#add', '#zoom', '#hashtag', '#import');
       setupStrokeHandlers('#stroke', 'edit', '#undo', '#preview');
       setupWordHandlers('#load', '#export', '#new', '#xslider', '#yslider');
       acquireGlyph();
