@@ -1,0 +1,9 @@
+@page {
+  margin: 1px 1px 1px 1px;
+}
+
+svg {
+  position: absolute;
+  padding: 0;
+  margin: 0;
+}
