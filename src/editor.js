@@ -8,6 +8,7 @@
  */
 
 import {createSVG, svgBox, svgLine} from './modules/svg.js';
+import {Glyph} from './modules/glyph.js';
 import {Stroke} from './modules/stroke.js';
 
 function writeFile(fileName, contents) {
@@ -124,12 +125,13 @@ class GlyphEditor {
     $(addBtn).on('click', () => {
       this.addGlyph();
       this.resetCanvas();
-      this.getCurrentGlyph().addTag('楷');  // add default tag
+      this.addTag('楷');  // add default tag
     });
     $(zoomBtn).on('click', () => {
       const image = document.getElementById(Canvas.bgImage.substring(1));
+      if (!image) return;
       const src = image.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
-      if (src.length) {
+      if (src && src.length) {
         const pct = parseInt(prompt('Zoom percentage?', '100'));
         const shift = (100 - pct) / 2;
         image.style.transform =
@@ -138,8 +140,9 @@ class GlyphEditor {
     });
     $(hashtagBtn).on('click', () => {
       let tag = prompt('Tag name?', '楷');
+      if (!tag || tag.trim().length == 0) return;
       if (tag.startsWith('#')) tag = tag.substring(1);
-      GlyphEditor.current().addTag(tag);
+      this.addTag(tag);
     });
     $(importBtn).on('click', () => {
       navigator.clipboard.read().then(items => {
@@ -148,7 +151,9 @@ class GlyphEditor {
       }).then(blob => {
         const reader = new FileReader();
         reader.onload = (ev) => {
-          document.getElementById(Canvas.bgImage.substring(1)).setAttributeNS(
+          const image = document.getElementById(Canvas.bgImage.substring(1));
+          if (!image) return;
+          image.setAttributeNS(
               'http://www.w3.org/1999/xlink', 'href', ev.target.result);
         };
         reader.readAsDataURL(blob);
@@ -191,9 +196,10 @@ class GlyphEditor {
         $(`${this.selectorId} option:eq(0)`).prop('selected', true);
         this.index = 0;
         StrokeEditor.get().inflate(this.glyphs[0]);
-        this.glyphs[0].updatePreviews();
+        this.glyphs[0].getTags().forEach((t, i) => this.renderTag(i, t), this);
+        this.updatePreviews();
       } else {
-        this.getCurrentGlyph().addTag('楷');
+        this.addTag('楷');
       }
       $(Canvas.target).text(`${this.text} ${this.getCode()}`);
     }, this);
@@ -206,6 +212,7 @@ class GlyphEditor {
     }
 
     const image = document.getElementById(Canvas.bgImage.substring(1));
+    if (!image) return;
     image.setAttributeNS(
         'http://www.w3.org/1999/xlink', 'href', this.getLegacyPath());
     $(Canvas.bgImage).attr('width', Canvas.size);
@@ -214,6 +221,7 @@ class GlyphEditor {
 
   clearBackground() {
     const image = document.getElementById(Canvas.bgImage.substring(1));
+    if (!image) return;
     image.removeAttributeNS('http://www.w3.org/1999/xlink', 'href');
   }
 
@@ -245,12 +253,24 @@ class GlyphEditor {
     $(Canvas.tagContainer).empty();
   }
 
+  render() {
+    this.getCurrentGlyph().renderStrokes(Canvas.main);
+    this.updatePreviews();
+  }
+
+  updatePreviews() {
+    $(Canvas.preview1).empty();
+    $(Canvas.preview2).empty();
+    this.getCurrentGlyph().renderStrokes(Canvas.preview1);
+    this.getCurrentGlyph().renderStrokes(Canvas.preview2);
+  }
+
   onChange() {
     const newIndex = $(this.selectorId).val();
     if (newIndex != this.index) {
       this.index = newIndex;
       this.resetCanvas();
-      this.getCurrentGlyph().render();
+      this.render();
     }
   }
 
@@ -263,6 +283,7 @@ class GlyphEditor {
       const offset = e.target.valueAsNumber - this.xbase;
       this.xbase = e.target.valueAsNumber;
       this.getCurrentGlyph().hshift(offset);
+      this.updatePreviews();
     }
   }
 
@@ -271,6 +292,7 @@ class GlyphEditor {
       const offset = e.target.valueAsNumber - this.ybase;
       this.ybase = e.target.valueAsNumber;
       this.getCurrentGlyph().vshift(offset);
+      this.updatePreviews();
     }
   }
 
@@ -284,9 +306,29 @@ class GlyphEditor {
   removeLastStroke() {
     const index = this.getCurrentGlyph().removeStroke(-1);
     if (index >= 0) {
-      this.getCurrentGlyph().updatePreviews();
+      this.updatePreviews();
     }
     return index;
+  }
+
+  addTag(tag) {
+    if (!this.getCurrentGlyph().hasTag(tag)) {
+      const index = this.getCurrentGlyph().addTag(tag);
+      if (index != -1) {
+        this.renderTag(index, tag);
+      }
+    }
+  }
+
+  renderTag(index, tag) {
+    const tagId = `ht${index}`;
+    $(Canvas.tagContainer).append(`<p id="${tagId}" class="tag">${tag}</p>`);
+    $('.tag').on('click', this.removeTag.bind(this));
+  }
+
+  removeTag(e) {
+    this.getCurrentGlyph().removeTag(e.target.textContent);
+    $(`#${e.target.id}`).remove();
   }
 }
 
@@ -400,102 +442,6 @@ class Guides {
   }
 }
 
-class Glyph {
-  constructor() {
-    this.strokes = [];
-    this.tags = [];
-  }
-
-  addStroke(s) {
-    this.strokes.push(s);
-  }
-
-  getNumberOfStrokes() {
-    return this.strokes.length;
-  }
-
-  getStroke(i) {
-    return this.strokes[i];
-  }
-
-  removeStroke(i) {
-    const index = (i < 0) ? this.strokes.length - 1 : i;
-    if (index < 0) return index;
-    const stroke =  this.strokes.splice(index, 1)[0];
-    stroke.vertexIds.forEach(id => $(`#${id}`).remove());
-    stroke.splineIds.forEach(id => $(`#${id}`).remove());
-    return index;
-  }
-
-  getNewStroke() {
-    return StrokeEditor.get().getNewStroke(this.strokes.length);
-  }
-
-  render() {
-    this.renderStrokes(Canvas.main);
-    this.updatePreviews();
-  }
-
-  serialize() {
-    return {
-      'tags': this.tags,
-      'strokes': this.strokes.map(s => s.serialize()),
-    };
-  }
-
-  deserialize(canvas, json) {
-    this.strokes = json.strokes.map((s, i) => Stroke.deserialize(i, canvas, s));
-    json.tags.forEach(t => this.addTag(t));
-  }
-
-  renderStrokes(target) {
-    this.strokes.forEach((s, i) => {
-      s.splines.forEach((p, j) => {
-        createSVG('path', {
-          'id': `S${i}s${j}`,
-          'fill': 'none',
-          'stroke': 'blue',
-          'stroke-width': 16,
-          'stroke-linecap': 'round',
-          'd': p.attr('d')
-        }).appendTo(target);
-      });
-    });
-  }
-
-  updatePreviews() {
-    $(Canvas.preview1).empty();
-    $(Canvas.preview2).empty();
-    this.renderStrokes(Canvas.preview1);
-    this.renderStrokes(Canvas.preview2);
-  }
-
-  hshift(offset) {
-    this.strokes.forEach(s => s.hshift(offset));
-    this.updatePreviews();
-  }
-
-  vshift(offset) {
-    this.strokes.forEach(s => s.vshift(offset));
-    this.updatePreviews();
-  }
-
-  addTag(tag) {
-    if (this.tags.indexOf(tag) == -1) {
-      const tagId = `ht${this.tags.length}`;
-      $(Canvas.tagContainer).append(`<p id="${tagId}" class="tag">${tag}</p>`);
-      this.tags.push(tag);
-      $('.tag').on('click', this.removeTag.bind(this));
-    }
-  }
-
-  removeTag(e) {
-    const index = this.tags.indexOf(e.target.textContent);
-    this.tags.splice(index, 1);
-    $(`#${e.target.id}`).remove();
-  }
-}
-
 class MouseHandler {
   static instance;
 
@@ -527,7 +473,9 @@ class MouseHandler {
     if (this.currentStroke !== undefined) {
       this.currentStroke.deactivate();
     }
-    this.currentStroke = GlyphEditor.current().getNewStroke();
+    this.currentStroke =
+        StrokeEditor.get().getNewStroke(
+            GlyphEditor.current().getNumberOfStrokes());
     this.currentStroke.activated = true;
   }
 
@@ -547,7 +495,7 @@ class MouseHandler {
     } else {
       this.tuneMouseup(e);
     }
-    GlyphEditor.current().updatePreviews();
+    GlyphEditor.get().updatePreviews();
   }
 
   drawMouseup(e) {
@@ -623,7 +571,7 @@ class MouseHandler {
     } else if (EditorState.state == EditorState.DELETE) {
       if (stroke.selectDot(e.clientX, e.clientY)) {
         stroke.removeDot();
-        GlyphEditor.current().updatePreviews();
+        GlyphEditor.get().updatePreviews();
       }
     }
   }

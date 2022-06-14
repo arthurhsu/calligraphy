@@ -196,8 +196,10 @@ class Stroke {
     if (this.selected && this.selected != this.vertices.length - 1) {
       const vId = this.vertexIds[this.selected];
       const sId = this.splineIds[this.selected];
-      document.getElementById(vId).remove();
-      document.getElementById(sId).remove();
+      const vertex = document.getElementById(vId);
+      if (vertex) vertex.remove();
+      const spline = document.getElementById(sId);
+      if (spline) spline.remove();
       this.vertices.splice(this.selected, 1);
       this.vertexIds.splice(this.selected, 1);
       this.splines.splice(this.selected, 1);
