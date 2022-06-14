@@ -7,6 +7,8 @@
  * http://www.particleincell.com/2012/bezier-splines/
  */
 
+import {createSVG, svgBox, svgLine} from './modules/svg.js';
+
 function writeFile(fileName, contents) {
   const streamSaver = window.streamSaver;
   const payload = new TextEncoder().encode(contents);
@@ -15,14 +17,6 @@ function writeFile(fileName, contents) {
   const writer = fileStream.getWriter();
   writer.write(payload);
   writer.close();
-}
-
-function createSVG(tag, data) {
-  let ret = document.createElementNS('http://www.w3.org/2000/svg', tag);
-  for (let prop in data) {
-    ret.setAttributeNS(null, prop, data[prop]);
-  }
-  return $(ret);
 }
 
 function acquireGlyph() {
@@ -397,24 +391,11 @@ class Guides {
   box(width, pct) {
     const l = width * (100 - pct) / 200;
     const r = width - l;
-    createSVG('path', {
-      'id': `rc${pct}`,
-      'fill': 'none',
-      'stroke': 'red',
-      'stroke-dasharray': '5,5',
-      'd': `M${l} ${l} L${[r, l, r, r, l, r, l, l].join(' ')}`,
-    }).appendTo(Canvas.main);
+    svgBox(`rc${pct}`, l, l, r, r, 'red', 1, true, Canvas.main);
   }
 
   line(x1, y1, x2, y2) {
-    createSVG('line', {
-      'x1': x1,
-      'y1': y1,
-      'x2': x2,
-      'y2': y2,
-      'stroke': 'red',
-      'stroke-dasharray': '5,5',
-    }).appendTo(Canvas.main);
+    svgLine(null, x1, y1, x2, y2, 'red', 1, true, Canvas.main);
   }
 }
 
@@ -901,3 +882,9 @@ class EditorState {
   static DELETE = 'delete';
   static state = EditorState.DRAW;
 }
+
+export {acquireGlyph,
+        setupCanvasHandlers,
+        setupGlyphHandlers,
+        setupStrokeHandlers,
+        setupWordHandlers}
