@@ -98,7 +98,7 @@ class Canvas {
 }
 
 class GlyphEditor {
-  static instance = undefined;
+  static instance;
   static get() {
     if (GlyphEditor.instance === undefined) {
       GlyphEditor.instance = new GlyphEditor();
@@ -296,7 +296,7 @@ class GlyphEditor {
 }
 
 class StrokeEditor {
-  static instance = undefined;
+  static instance;
   static get() {
     if (StrokeEditor.instance === undefined) {
       StrokeEditor.instance = new StrokeEditor();
@@ -522,7 +522,7 @@ class Stroke {
     this.splines = [];  // splines
     this.splineIds = [];  // ids for splines
     this.activated = false;
-    this.unselectDot();
+    this.selected = -1;
   }
 
   static deserialize(id, json) {
@@ -688,10 +688,12 @@ class Stroke {
 
   moveDot(x, y) {
     const node = document.getElementById(this.vertexIds[this.selected]);
-    node.setAttributeNS(null, 'cx', x);
-    node.setAttributeNS(null, 'cy', y);
-    this.vertices[this.selected] = [x, y];
-    this.updateSplines();
+    if (node) {
+      node.setAttributeNS(null, 'cx', x);
+      node.setAttributeNS(null, 'cy', y);
+      this.vertices[this.selected] = [x, y];
+      this.updateSplines();
+    }
   }
 
   removeDot() {
@@ -761,7 +763,7 @@ class Stroke {
 }
 
 class MouseHandler {
-  static instance = undefined;
+  static instance;
 
   static get() {
     if (MouseHandler.instance == undefined) {
