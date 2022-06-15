@@ -4,12 +4,6 @@
   height: 512px;
 }
 
-.preview {
-  border: 1px solid green;
-  width: 202px;
-  height: 202px;
-}
-
 div {
   display: inline-block;
 }
@@ -42,6 +36,7 @@ div {
   width: 101px;
   height: 101px;
   margin: 5px;
+  border: 1px solid green;
 }
 
 .preview101 > svg {
@@ -54,6 +49,7 @@ div {
   width: 202px;
   height: 202px;
   margin: 5px;
+  border: 1px solid green;
 }
 
 .preview202 > svg {

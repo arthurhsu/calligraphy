@@ -10,6 +10,7 @@
 import {createSVG, svgBox, svgLine} from './modules/svg.js';
 import {Glyph} from './modules/glyph.js';
 import {Stroke} from './modules/stroke.js';
+import {Util} from './modules/util.js';
 
 function writeFile(fileName, contents) {
   const streamSaver = window.streamSaver;
@@ -168,26 +169,10 @@ class GlyphEditor {
     return this.glyphs[this.index];
   }
 
-  getCode() {
-    return this.text.charCodeAt(0).toString(16).toUpperCase();
-  }
-
-  getPath() {
-    const code = this.getCode();
-    return `/data/${code.slice(0, 1)}/${code}.json`;
-  }
-
-  getLegacyPath() {
-    const code = this.getCode();
-    return `/assets/${code.slice(0, 1)}/${code}.png`;
-  }
-
   load(text) {
     this.text = text;
     $(this.selectorId).empty();
-    return fetch(this.getPath()).then(resp => {
-      return resp.ok ? resp.json() : Promise.resolve(null);
-    }).then(json => {
+    return Util.fetchGlyph(this.text).then(json => {
       if (json !== null) {
         json.glyphs.forEach((g, i) => {
           this.addGlyph();
@@ -201,7 +186,7 @@ class GlyphEditor {
       } else {
         this.addTag('楷');
       }
-      $(Canvas.target).text(`${this.text} ${this.getCode()}`);
+      $(Canvas.target).text(`${this.text} ${Util.getCode(this.text)}`);
     }, this);
   }
 
@@ -214,7 +199,7 @@ class GlyphEditor {
     const image = document.getElementById(Canvas.bgImage.substring(1));
     if (!image) return;
     image.setAttributeNS(
-        'http://www.w3.org/1999/xlink', 'href', this.getLegacyPath());
+        'http://www.w3.org/1999/xlink', 'href', Util.getLegacyPath(this.text));
     $(Canvas.bgImage).attr('width', Canvas.size);
     $(Canvas.bgImage).attr('height', Canvas.size);
   }
@@ -227,12 +212,12 @@ class GlyphEditor {
 
   export() {
     const ret = {
-      'code': this.getCode(),
+      'code': Util.getCode(this.text),
       'text': this.text,
       'glyphs': this.glyphs.map(g => g.serialize()),
     };
 
-    writeFile(`${this.getCode()}.json`, JSON.stringify(ret));
+    writeFile(`${ret['code']}.json`, JSON.stringify(ret));
   }
 
   clear() {

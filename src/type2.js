@@ -7,6 +7,13 @@
 import {createSVG, svgBox, svgLine} from './modules/svg.js';
 
 const SHEET = '#sheet';
+const W1 = 108;  // cell width with border
+const W2 = 105;  // cell width
+const W3 = 53;   // cell center
+const FW = W1 * 10;  // width of a frame
+const FH = W1 * 6;  // height of a frame
+const X1 = 70, Y1 = 70;  // top left of upper frame
+const Y2 = 70 + FH + W2 - 20;  // top left Y of lower frame
 
 function box(x1, y1, x2, y2, color, width) {
   svgBox(null, x1, y1, x2, y2, color, width, false, SHEET);
@@ -16,20 +23,15 @@ function line(x1, y1, x2, y2, color, width, dash) {
   svgLine(null, x1, y1, x2, y2, color, width, dash, SHEET);
 }
 
-const W1 = 108;
-const W2 = 105;
-const W3 = 53;
-const X = W1 * 10;
-const Y = W1 * 6;
 
 function drawFrame(x, y, color = 'olive', width = 3) {
-  box(x, y, x + X, y + Y, color, width);
+  box(x, y, x + FW, y + FH, color, width);
   for (let i = 0; i < 10; ++i) {
-    line(x + i * W1, y, x + i * W1, y + Y, color, width, false);
+    line(x + i * W1, y, x + i * W1, y + FH, color, width, false);
   }
 
   for (let i = 0; i < 6; ++i) {
-    line(x, y + i * W1, x + X, y + i * W1, color, width, false);
+    line(x, y + i * W1, x + FW, y + i * W1, color, width, false);
   }
 
   /*
@@ -45,17 +47,26 @@ function drawFrame(x, y, color = 'olive', width = 3) {
 
 function drawCrossGuide(x, y, color = 'olive', width = 1) {
   for (let i = 0; i < 10; ++i) {
-    line(x + i * W1 + W3, y, x + i * W1 + W3, y + Y, color, width, true);
+    line(x + i * W1 + W3, y, x + i * W1 + W3, y + FH, color, width, true);
   }
 
   for (let i = 0; i < 6; ++i) {
-    line(x, y + i * W1 + W3, x + X, y + i * W1 + W3, color, width, true);
+    line(x, y + i * W1 + W3, x + FW, y + i * W1 + W3, color, width, true);
   }
 }
 
-function main() {
-  drawFrame(70, 70);
-  drawFrame(70, 70 + Y + W2 - 20);
+function frame() {
+  drawFrame(X1, Y1);
+  drawFrame(X1, Y2);
 }
 
-export {main};
+function getCellPosition(i, j, isUpperFrame) {
+  const X = X1;
+  const Y = isUpperFrame ? Y1 : Y2;
+  return {
+    'x': X + i * W1 + 2,
+    'y': Y + j * W1 + 2
+  };
+}
+
+export {frame, getCellPosition, W2 as W};

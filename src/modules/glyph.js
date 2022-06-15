@@ -49,17 +49,19 @@ class Glyph {
   }
 
   deserialize(canvas, json) {
+    if (!json) return this;
     this.strokes = json.strokes.map((s, i) => Stroke.deserialize(i, canvas, s));
     this.tags = json.tags;
+    return this;
   }
 
-  renderStrokes(target) {
+  renderStrokes(target, color='blue') {
     this.strokes.forEach((s, i) => {
       s.splines.forEach((p, j) => {
         createSVG('path', {
           'id': `S${i}s${j}`,
           'fill': 'none',
-          'stroke': 'blue',
+          'stroke': color,
           'stroke-width': 16,
           'stroke-linecap': 'round',
           'd': p.attr('d')
