@@ -94,6 +94,10 @@ class Glyph {
     const index = this.tags.indexOf(tag);
     return index == -1 ? null : this.tags.splice(index, 1)[0];
   }
+
+  zoom(pct) {
+    this.strokes.forEach(s => s.zoom(pct));
+  }
 }
 
 export {Glyph}

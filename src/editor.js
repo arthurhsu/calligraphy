@@ -137,6 +137,10 @@ class GlyphEditor {
         const shift = (100 - pct) / 2;
         image.style.transform =
             `scale(${pct/100}) translate(${shift}%, ${shift}%)`;
+      } else if (this.getCurrentGlyph().getNumberOfStrokes()) {
+        const pct = parseInt(prompt('Zoom percentage?', '100'));
+        this.getCurrentGlyph().zoom(pct);
+        this.updatePreviews();
       }
     });
     $(hashtagBtn).on('click', () => {
