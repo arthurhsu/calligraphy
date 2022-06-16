@@ -11,12 +11,12 @@ class Util {
 
   static getPath(s) {
     const code = Util.getCode(s);
-    return `/data/${code.slice(0, 1)}/${code}.json`;
+    return `../data/${code.slice(0, 1)}/${code}.json`;
   }
 
   static getLegacyPath(s) {
     const code = Util.getCode(s);
-    return `/assets/${code.slice(0, 1)}/${code}.png`;
+    return `../assets/${code.slice(0, 1)}/${code}.png`;
   }
 
   static fetchGlyph(s) {
