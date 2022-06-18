@@ -382,6 +382,7 @@ class StrokeEditor {
       $(this.strokeSelector).append(`<option value=${i}>S${i}</option>`);
     }
     $(this.strokeSelector).val(glyph.getNumberOfStrokes() - 1);
+    this.onChange();
   }
 
   getNewStroke(id) {
