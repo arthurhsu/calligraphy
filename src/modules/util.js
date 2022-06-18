@@ -24,6 +24,16 @@ class Util {
       return resp.ok ? resp.json() : Promise.resolve(null);
     });
   }
+
+  static writeFile(fileName, contents) {
+    const streamSaver = window.streamSaver;
+    const payload = new TextEncoder().encode(contents);
+    const fileStream = streamSaver.createWriteStream(
+        fileName, { size: payload.byteLength });
+    const writer = fileStream.getWriter();
+    writer.write(payload);
+    writer.close();
+  }
 }
 
 export {Util}

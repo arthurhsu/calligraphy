@@ -7,20 +7,10 @@
  * http://www.particleincell.com/2012/bezier-splines/
  */
 
-import {createSVG, svgBox, svgLine} from './modules/svg.js';
+import {Guide} from './modules/guide.js';
 import {Glyph} from './modules/glyph.js';
 import {Stroke} from './modules/stroke.js';
 import {Util} from './modules/util.js';
-
-function writeFile(fileName, contents) {
-  const streamSaver = window.streamSaver;
-  const payload = new TextEncoder().encode(contents);
-  const fileStream = streamSaver.createWriteStream(
-      fileName, { size: payload.byteLength });
-  const writer = fileStream.getWriter();
-  writer.write(payload);
-  writer.close();
-}
 
 function acquireGlyph() {
   let moveOn = false;
@@ -43,7 +33,7 @@ function setupCanvasHandlers(
   Canvas.target = target;
   Canvas.tagContainer = tagContainer;
 
-  Guides.setup(size);
+  Guide.drawCanvas(size, Canvas.main);
   MouseHandler.get().install();
 }
 
@@ -221,7 +211,7 @@ class GlyphEditor {
       'glyphs': this.glyphs.map(g => g.serialize()),
     };
 
-    writeFile(`${ret['code']}.json`, JSON.stringify(ret));
+    Util.writeFile(`${ret['code']}.json`, JSON.stringify(ret));
   }
 
   clear() {
@@ -380,7 +370,7 @@ class StrokeEditor {
       case EditorState.MOVE:
         // TODO
         break;
-      
+
       default:
         break;
     }
@@ -400,34 +390,6 @@ class StrokeEditor {
     const ret = new Stroke(id, Canvas.main);
     this.currentStroke = ret;
     return ret;
-  }
-}
-
-class Guides {
-  static setup(width) {
-    return new Guides(width);
-  }
-
-  constructor(width) {
-    this.box(width, 90);
-    this.box(width, 80);
-    this.box(width, 75);
-    this.box(width, 50);
-    this.line(0, width / 2, width, width / 2);
-    this.line(width / 2, 0, width / 2, width);
-    this.line(0, 0, width, width);
-    this.line(width, 0, 0, width);
-  }
-
-  // Draw box for percentile
-  box(width, pct) {
-    const l = width * (100 - pct) / 200;
-    const r = width - l;
-    svgBox(`rc${pct}`, l, l, r, r, 'red', 1, true, Canvas.main);
-  }
-
-  line(x1, y1, x2, y2) {
-    svgLine(null, x1, y1, x2, y2, 'red', 1, true, Canvas.main);
   }
 }
 
