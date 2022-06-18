@@ -328,6 +328,9 @@ class StrokeEditor {
 
   clear() {
     $(`input[name=${this.radioGroup}][value='draw']`).prop('checked', true);
+    if (this.strokeSelector) {
+      $(this.strokeSelector).empty();
+    }
   }
 
   install(strokeSelector, editingRadio, undoBtn) {

@@ -32,9 +32,28 @@ class Stroke {
   }
 
   serialize() {
+    // In multi-glyph environment, only the vertices are reliable.
+    // Because splines are not necessarily be on-screen, therefore it is needed
+    // to recalculate the splines.
+
+    const x = this.vertices.map(dot => dot[0]);
+    const y = this.vertices.map(dot => dot[1]);
+
+    const px = this.computeControlPoints(x);
+    const py = this.computeControlPoints(y);
+
+    const splines = new Array(this.vertices.length - 1);
+    for (let i = 0; i < splines.length; ++i) {
+      splines[i] = this.createPath(
+          x[i], y[i],
+          px.p1[i], py.p1[i],
+          px.p2[i], py.p2[i],
+          x[i + 1], y[i + 1]);
+    }
+
     return {
       'dots': this.vertices.flat(),
-      'splines': this.splineIds.map(id => $(`#${id}`).attr('d'))
+      'splines': splines,
     }
   }
 
