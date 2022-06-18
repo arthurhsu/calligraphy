@@ -6,23 +6,18 @@
 
 import {Util} from './modules/util.js';
 import {Glyph} from './modules/glyph.js';
-import {frame, getCellPosition, W} from './type2.js';
+import {Cell, Sheet} from './modules/guide.js';
 
 function getChars(selector) {
   const text = $(selector).val().toString().trim().substring(0, 10);
   return text;
 }
 
-function createSVGElement(id, target) {
-  $(target).append('<svg xmlns="http://www.w3.org/2000/svg" ' +
-      'xmlns:xlink="http://www.w3.org/1999/xlink"' +
-      `id="${id}" viewbox="0 0 512 512"></svg>`);
-}
-
 function renderGlyph(json, row, i, isUpperFrame, color='blue') {
   const idx = isUpperFrame ? 0 : 1;
-  const pos = getCellPosition(i, row, isUpperFrame);
+  const pos = Sheet.getCellPosition(row, i, isUpperFrame);
   const svgId = `#g${idx}${row}${i}`;
+  const W = Cell.RW;
   const svgHtml = '<svg xmlns="http://www.w3.org/2000/svg"' +
       ' xmlns:xlink="http://www.w3.org/1999/xlink"' +
       ` viewBox="0 0 512 512" x=${pos['x']} y=${pos['y']}` +
@@ -62,7 +57,7 @@ function setup() {
     window.print();
   });
 
-  frame();
+  Sheet.draw('#sheet');
 }
 
 export {setup}
