@@ -1,0 +1,32 @@
+<!doctype html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Calligraphy sheet generator</title>
+    <link rel="stylesheet" type="text/css" href="freestyle2.css" />
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js" type="text/javascript"></script>
+  </head>
+  <body>
+    <h1>硬筆書法字帖產生器</h1>
+    <label><input type="checkbox" id="vertical" />直式</label>
+    <label><input type="checkbox" id="fade" />淡化</label>
+    <input type="button" id="gen" value="Generate" />
+    <input type="button" id="print" value="Print" />
+    <div>
+      <h2>內文</h2>
+      <textarea id="contents" rows="10" cols="40"></textarea>
+    </div>
+    <div class="printable" id="printable">
+      <svg xmlns="http://www.w3.org/2000/svg"
+        xmlns:xlink="http://www.w3.org/1999/xlink"
+        id="sheet"
+        viewbox="0 0 1216 1455"
+      >
+      </svg>
+    </div>
+    <script type="module">
+      import {setup} from './freestyle2.js';
+      setup();
+    </script>
+  </body>
+</html>

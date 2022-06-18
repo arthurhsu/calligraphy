@@ -100,4 +100,4 @@ class Guide {
   }
 }
 
-export {Guide, Cell, Sheet}
+export {Cell, Frame, Guide, Sheet}
