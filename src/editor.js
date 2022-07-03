@@ -38,9 +38,10 @@ function setupCanvasHandlers(
 }
 
 function setupGlyphHandlers(
-    glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn) {
+    glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn, copyBtn) {
   GlyphEditor.get().install(
-      glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn);
+      glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn,
+      copyBtn);
 }
 
 function setupStrokeHandlers(strokeSelector, editingRadio, undoBtn, eraseBtn) {
@@ -103,7 +104,8 @@ class GlyphEditor {
     this.ybase = 256;
   }
 
-  install(glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn) {
+  install(glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn,
+      copyBtn) {
     this.selectorId = glyphSelector;
     this.moveCheckboxId = moveCheck;
     $(glyphSelector).on('change', this.onChange.bind(this));
@@ -149,6 +151,16 @@ class GlyphEditor {
         reader.readAsDataURL(blob);
       });
     });
+    $(copyBtn).on('click', () => {
+      if (this.getCurrentGlyph().strokes.length > 0) {
+        alert('Must not copy while existing glyph is not empty');
+        return;
+      }
+      const text = prompt('Input a Kanji to copy from:');
+      if (text && text.length == 1) {
+        this.clone(text);
+      }
+    });
   }
 
   getCurrentGlyph() {
@@ -161,7 +173,12 @@ class GlyphEditor {
   load(text) {
     this.text = text;
     $(this.selectorId).empty();
-    return Util.fetchGlyph(this.text).then(json => {
+    $(Canvas.target).text(`${this.text} ${Util.getCode(this.text)}`);
+    return this.clone(text);
+  }
+
+  clone(text) {
+    return Util.fetchGlyph(text).then(json => {
       if (json !== null) {
         json.glyphs.forEach((g, i) => {
           this.addGlyph();
@@ -175,7 +192,6 @@ class GlyphEditor {
       } else {
         this.addTag('楷');
       }
-      $(Canvas.target).text(`${this.text} ${Util.getCode(this.text)}`);
     });
   }
 

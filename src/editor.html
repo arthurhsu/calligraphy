@@ -78,6 +78,7 @@
     <input id="zoom" type="image" src="res/zoom.png" alt="Zoom" />
     <input id="export" type="image" src="res/export.png" title="Export" />
     <input id="import" type="image" src="res/import.png" title="Impport from clipboard" />
+    <input id="copy" type="image" src="res/copy.png" title="Copy existing" />
   </div>
   <script type="module">
     import {setupCanvasHandlers,
@@ -91,7 +92,7 @@
           512, '#pad', '#preview1', '#preview2', '#bgImage', '#target',
           '#tagbin');
       setupGlyphHandlers(
-          '#glyph', '#move', '#add', '#zoom', '#hashtag', '#import');
+          '#glyph', '#move', '#add', '#zoom', '#hashtag', '#import', '#copy');
       setupStrokeHandlers('#stroke', 'edit', '#undo', '#erase');
       setupWordHandlers('#load', '#export', '#xslider', '#yslider');
       acquireGlyph();
