@@ -43,8 +43,8 @@ function setupGlyphHandlers(
       glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn);
 }
 
-function setupStrokeHandlers(strokeSelector, editingRadio, undoBtn) {
-  StrokeEditor.get().install(strokeSelector, editingRadio, undoBtn);
+function setupStrokeHandlers(strokeSelector, editingRadio, undoBtn, eraseBtn) {
+  StrokeEditor.get().install(strokeSelector, editingRadio, undoBtn, eraseBtn);
 }
 
 function setupWordHandlers(loadBtn, exportBtn, xSlider, ySlider) {
@@ -278,6 +278,10 @@ class GlyphEditor {
     return index;
   }
 
+  removeStroke(index) {
+    return this.getCurrentGlyph().removeStroke(index);
+  }
+
   addTag(tag) {
     if (!this.getCurrentGlyph().hasTag(tag)) {
       const index = this.getCurrentGlyph().addTag(tag);
@@ -321,7 +325,7 @@ class StrokeEditor {
     }
   }
 
-  install(strokeSelector, editingRadio, undoBtn) {
+  install(strokeSelector, editingRadio, undoBtn, eraseBtn) {
     this.strokeSelector = strokeSelector;
     $(strokeSelector).on('change', this.onChange.bind(this));
 
@@ -332,6 +336,7 @@ class StrokeEditor {
     this.radioGroup = editingRadio;
 
     $(undoBtn).on('click', this.undo.bind(this));
+    $(eraseBtn).on('click', this.erase.bind(this));
   }
 
   onChange() {
@@ -364,6 +369,20 @@ class StrokeEditor {
 
       default:
         break;
+    }
+  }
+
+  erase(e) {
+    if (EditorState.state != EditorState.DRAW) {
+      return;
+    }
+
+    if (this.currentStroke && this.currentStroke.activated) {
+      const index = $(this.strokeSelector).val();
+      if (!confirm(`Remove stroke S${index}?`)) return;
+      if (GlyphEditor.get().removeStroke(index) >= 0) {
+        $(`${this.strokeSelector} option:last`).remove();
+      }
     }
   }
 

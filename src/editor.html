@@ -66,6 +66,8 @@
     </label>
     &nbsp;&nbsp;
     <input id="undo" type="image" src="res/undo.png" title="Undo" />
+    &nbsp;&nbsp;
+    <input id="erase" type="image" src="res/eraser.png" title="Erase" />
   </div>
   <br/>
   <div class="editbuttons">
@@ -90,7 +92,7 @@
           '#tagbin');
       setupGlyphHandlers(
           '#glyph', '#move', '#add', '#zoom', '#hashtag', '#import');
-      setupStrokeHandlers('#stroke', 'edit', '#undo', '#preview');
+      setupStrokeHandlers('#stroke', 'edit', '#undo', '#erase');
       setupWordHandlers('#load', '#export', '#xslider', '#yslider');
       acquireGlyph();
     })();
