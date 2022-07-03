@@ -47,7 +47,7 @@ function setupStrokeHandlers(strokeSelector, editingRadio, undoBtn) {
   StrokeEditor.get().install(strokeSelector, editingRadio, undoBtn);
 }
 
-function setupWordHandlers(loadBtn, exportBtn, newBtn, xSlider, ySlider) {
+function setupWordHandlers(loadBtn, exportBtn, xSlider, ySlider) {
   $(exportBtn).on('click', () => {
     GlyphEditor.get().export();
   });
@@ -58,11 +58,6 @@ function setupWordHandlers(loadBtn, exportBtn, newBtn, xSlider, ySlider) {
     } else {
       GlyphEditor.get().clearBackground();
     }
-  });
-
-  $(newBtn).on('click', () => {
-    GlyphEditor.get().clear();
-    acquireGlyph();
   });
 
   $(xSlider).on('change', e => {
@@ -123,12 +118,12 @@ class GlyphEditor {
       if (!image) return;
       const src = image.getAttributeNS('http://www.w3.org/1999/xlink', 'href');
       if (src && src.length) {
-        const pct = parseInt(prompt('Zoom percentage?', '100'));
+        const pct = parseInt(prompt('Zoom percentage?', '100') || '100');
         const shift = (100 - pct) / 2;
         image.style.transform =
             `scale(${pct/100}) translate(${shift}%, ${shift}%)`;
       } else if (this.getCurrentGlyph().getNumberOfStrokes()) {
-        const pct = parseInt(prompt('Zoom percentage?', '100'));
+        const pct = parseInt(prompt('Zoom percentage?', '100') || '100');
         this.getCurrentGlyph().zoom(pct);
         this.updatePreviews();
       }
@@ -147,7 +142,7 @@ class GlyphEditor {
         const reader = new FileReader();
         reader.onload = (ev) => {
           const image = document.getElementById(Canvas.bgImage.substring(1));
-          if (!image) return;
+          if (!image || !ev.target) return;
           image.setAttributeNS(
               'http://www.w3.org/1999/xlink', 'href', ev.target.result);
         };
@@ -181,7 +176,7 @@ class GlyphEditor {
         this.addTag('楷');
       }
       $(Canvas.target).text(`${this.text} ${Util.getCode(this.text)}`);
-    }, this);
+    });
   }
 
   // Load and render legacy asset
@@ -212,13 +207,6 @@ class GlyphEditor {
     };
 
     Util.writeFile(`${ret['code']}.json`, JSON.stringify(ret));
-  }
-
-  clear() {
-    // TODO: implement dirty bits
-    this.index = -1;
-    this.glyphs = [];
-    this.resetCanvas();
   }
 
   resetCanvas() {
