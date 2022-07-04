@@ -2,9 +2,6 @@
 /**
  * @license
  * Copyright 2022 Arthur Hsu. Distributed under Creative Commons License.
- *
- * Cubic Bezier computation courtesy of
- * http://www.particleincell.com/2012/bezier-splines/
  */
 
 function createSVG(tag, data) {

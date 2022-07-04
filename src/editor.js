@@ -2,9 +2,6 @@
 /**
  * @license
  * Copyright 2015 Arthur Hsu. Distributed under Creative Commons License.
- *
- * Cubic Bezier computation courtesy of
- * http://www.particleincell.com/2012/bezier-splines/
  */
 
 import {Guide} from './modules/guide.js';
