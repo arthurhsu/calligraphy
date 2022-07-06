@@ -228,6 +228,17 @@ class Stroke {
     }
   }
 
+  addDot() {
+    if (this.activated == false) return;
+
+    const index = this.vertexIds.length - 1;
+    const x = this.vertices[index][0] + 20;
+    const y = this.vertices[index][1] + 20;
+    this.drawDot(x, y);
+    this.addPath();
+    this.updateSplines();
+  }
+
   activate() {
     if (this.activated == true) return;
 

@@ -41,8 +41,11 @@ function setupGlyphHandlers(
       copyBtn);
 }
 
-function setupStrokeHandlers(strokeSelector, editingRadio, undoBtn, eraseBtn) {
-  StrokeEditor.get().install(strokeSelector, editingRadio, undoBtn, eraseBtn);
+function setupStrokeHandlers(
+    strokeSelector, editingRadio, undoBtn, eraseBtn, addBtn) {
+  StrokeEditor
+      .get()
+      .install(strokeSelector, editingRadio, undoBtn, eraseBtn, addBtn);
 }
 
 function setupWordHandlers(loadBtn, exportBtn, xSlider, ySlider) {
@@ -338,7 +341,7 @@ class StrokeEditor {
     }
   }
 
-  install(strokeSelector, editingRadio, undoBtn, eraseBtn) {
+  install(strokeSelector, editingRadio, undoBtn, eraseBtn, addBtn) {
     this.strokeSelector = strokeSelector;
     $(strokeSelector).on('change', this.onChange.bind(this));
 
@@ -350,6 +353,7 @@ class StrokeEditor {
 
     $(undoBtn).on('click', this.undo.bind(this));
     $(eraseBtn).on('click', this.erase.bind(this));
+    $(addBtn).on('click', this.addDot.bind(this));
   }
 
   onChange() {
@@ -396,6 +400,16 @@ class StrokeEditor {
       if (GlyphEditor.get().removeStroke(index) >= 0) {
         $(`${this.strokeSelector} option:last`).remove();
       }
+    }
+  }
+
+  addDot(e) {
+    if (EditorState.state != EditorState.DRAW) {
+      return;
+    }
+
+    if (this.currentStroke && this.currentStroke.activated) {
+      this.currentStroke.addDot();
     }
   }
 
