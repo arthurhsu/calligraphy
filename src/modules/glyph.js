@@ -29,6 +29,10 @@ class Glyph {
     return this.strokes[i];
   }
 
+  isEmpty() {
+    return this.strokes.length == 0;
+  }
+
   removeStroke(i) {
     const index = (i < 0) ? this.strokes.length - 1 : i;
     if (index < 0) return index;

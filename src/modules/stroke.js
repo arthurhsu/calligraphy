@@ -35,7 +35,9 @@ class Stroke {
     // In multi-glyph environment, only the vertices are reliable.
     // Because splines are not necessarily be on-screen, therefore it is needed
     // to recalculate the splines.
-
+    this.vertices = this.vertices.map(v => {
+      return [parseFloat(v[0].toFixed(2)), parseFloat(v[1].toFixed(2))];
+    });
     const x = this.vertices.map(dot => dot[0]);
     const y = this.vertices.map(dot => dot[1]);
 

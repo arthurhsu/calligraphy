@@ -33,6 +33,7 @@ function toSVG(filePath, code, glyph = 0, color = 'blue', width = 16) {
 function main() {
   if (process.argc < 3 || process.argc > 6) {
     console.error('Usage: data2svg <Unicode> [glyph] [color] [stroke width]');
+    process.exit(1);
   }
   const code = process.argv[2].toString();
   const filePath = path.resolve(
