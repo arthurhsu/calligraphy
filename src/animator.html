@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<head>
+  <link rel="stylesheet" type="text/css" href="animator.css" />
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js" type="text/javascript"></script>
+  <script module="animator.js" type="text/javascript" charset="utf-8"></script>
+</head>
+<body>
+  <div id="container">
+    <svg xmlns="http://www.w3.org/2000/svg"
+       xmlns:xlink="http://www.w3.org/1999/xlink"
+       class="pad"
+       id="pad"
+       viewbox="0 0 512 512"
+    >
+    </svg>
+  </div>
+  <script type="module">
+    import {animateGlyph} from './animator.js';
+    // onLoad
+    (function() {
+      animateGlyph('妙', 0, 2000, 200, '#pad', 'olive');
+    })();
+  </script>
+</body>

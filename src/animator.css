@@ -1,0 +1,9 @@
+.pad {
+  border: 1px solid green;
+  width: 512px;
+  height: 512px;
+}
+
+div {
+  display: inline-block;
+}

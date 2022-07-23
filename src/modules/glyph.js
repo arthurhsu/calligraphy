@@ -6,11 +6,13 @@
 
 import {createSVG} from './svg.js';
 import {Stroke} from './stroke.js';
+import {Util} from './util.js';
 
 class Glyph {
   constructor() {
     this.strokes = [];
     this.tags = [];
+    this.animateIndex = -1;
   }
 
   addStroke(s) {
@@ -58,6 +60,7 @@ class Glyph {
 
   renderStrokes(target, color='blue') {
     this.strokes.forEach((s, i) => {
+      s.finish();
       s.splines.forEach((p, j) => {
         createSVG('path', {
           'id': `S${i}s${j}`,
@@ -69,6 +72,17 @@ class Glyph {
         }).appendTo(target);
       });
     });
+  }
+
+  animate(gap, speed, color) {
+    this.animateIndex++;
+    if (this.animateIndex < this.strokes.length) {
+      return this.strokes[this.animateIndex]
+          .animate(speed, color)
+          .then(Util
+              .sleep(gap)
+              .then(this.animate.bind(this, gap, speed, color)));
+    }
   }
 
   hshift(offset) {

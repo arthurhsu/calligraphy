@@ -8,6 +8,8 @@
  */
 
 import {createSVG} from './svg.js';
+import {Resolver} from './resolver.js';
+import {Util} from './util.js';
 
 class Stroke {
   constructor(id, canvas) {
@@ -19,6 +21,7 @@ class Stroke {
     this.activated = false;
     this.selected = -1;
     this.canvas = canvas;
+    this.resolver = undefined;
   }
 
   static deserialize(id, canvas, json) {
@@ -27,7 +30,6 @@ class Stroke {
       ret.vertexIds.push(`S${ret.id}c${ret.vertices.length}`);
       ret.vertices.push([json.dots[i], json.dots[i + 1]]);
     }
-    ret.finish();
     return ret;
   }
 
@@ -79,12 +81,13 @@ class Stroke {
     this.vertexIds.push(id);
   }
 
-  addPath() {
+  addPath(colorOverride) {
+    const color = colorOverride || this.activated ? 'green' : 'blue'
     const id = `S${this.id}s${this.splines.length}`;
     let s = createSVG('path', {
       'id': id,
       'fill': 'none',
-      'stroke': this.activated ? 'green' : 'blue',
+      'stroke': color,
       'stroke-width': 16,
       'stroke-linecap': 'round',
     });
@@ -184,6 +187,43 @@ class Stroke {
       this.addPath();
     }
     this.updateSplines();
+  }
+
+  animate(speed, color) {
+    // Add a spline every 100 milliseconds
+    this.resolver = new Resolver();
+    this.delayDraw(speed, color);
+    return this.resolver.promise;
+  }
+
+  updateLastSpline() {
+    const i = this.splines.length - 1;
+    const x = this.vertices.map(dot => dot[0]);
+    const y = this.vertices.map(dot => dot[1]);
+
+    const px = this.computeControlPoints(x);
+    const py = this.computeControlPoints(y);
+
+    this.splines[i].get(0).setAttributeNS(
+        null,
+        'd',
+        this.createPath(
+            x[i], y[i],
+            px.p1[i], py.p1[i],
+            px.p2[i], py.p2[i],
+            x[i + 1], y[i + 1]));
+  }
+
+  delayDraw(gap, color) {
+    if (this.splines.length < this.vertices.length - 1) {
+      this.addPath(color);
+      this.updateLastSpline();
+      Util.sleep(gap).then(this.delayDraw.bind(this, gap, color));
+    } else {
+      if (this.resolver) {
+        this.resolver.resolve();
+      }
+    }
   }
 
   // Select a dot on stroke

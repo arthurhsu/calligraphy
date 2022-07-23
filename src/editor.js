@@ -184,6 +184,7 @@ class GlyphEditor {
           this.addGlyph();
           this.glyphs[i].deserialize(Canvas.main, g);
         }, this);
+        this.glyphs[0].renderStrokes(Canvas.main);
         $(`${this.selectorId} option:eq(0)`).prop('selected', true);
         this.index = 0;
         StrokeEditor.get().inflate(this.glyphs[0]);
