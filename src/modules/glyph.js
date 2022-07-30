@@ -61,6 +61,10 @@ class Glyph {
   renderStrokes(target, color='blue') {
     this.strokes.forEach((s, i) => {
       s.finish();
+      // Stroke.finish() already created the path on its own canvas
+      // So need to check if target matches
+      if (target == s.canvas) return;
+      
       s.splines.forEach((p, j) => {
         createSVG('path', {
           'id': `S${i}s${j}`,
