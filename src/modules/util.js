@@ -22,6 +22,8 @@ class Util {
   static fetchGlyph(s) {
     return fetch(Util.getPath(s)).then(resp => {
       return resp.ok ? resp.json() : Promise.resolve(null);
+    }, () => {
+      return Promise.resolve(null);
     });
   }
 
