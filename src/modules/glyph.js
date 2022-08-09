@@ -117,6 +117,10 @@ class Glyph {
   zoom(pct) {
     this.strokes.forEach(s => s.zoom(pct));
   }
+
+  rotate(deg) {
+    this.strokes.forEach(s => s.rotate(deg));
+  }
 }
 
 export {Glyph}

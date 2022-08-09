@@ -35,10 +35,11 @@ function setupCanvasHandlers(
 }
 
 function setupGlyphHandlers(
-    glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn, copyBtn) {
+    glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn, copyBtn,
+    rotateBtn) {
   GlyphEditor.get().install(
       glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn,
-      copyBtn);
+      copyBtn, rotateBtn);
 }
 
 function setupStrokeHandlers(
@@ -105,7 +106,7 @@ class GlyphEditor {
   }
 
   install(glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn,
-      copyBtn) {
+      copyBtn, rotateBtn) {
     this.selectorId = glyphSelector;
     this.moveCheckboxId = moveCheck;
     $(glyphSelector).on('change', this.onChange.bind(this));
@@ -159,6 +160,21 @@ class GlyphEditor {
       const text = prompt('Input a Kanji to copy from:');
       if (text && text.length == 1) {
         this.clone(text);
+      }
+    });
+    $(rotateBtn).on('click', () => {
+      if (this.getCurrentGlyph().getNumberOfStrokes()) {
+        const tag = prompt('Rotate CW degrees?');
+        if (!tag || tag.trim().length == 0) return;
+        try {
+          const deg = parseInt(tag, 10);
+          if (deg) {
+            this.getCurrentGlyph().rotate(deg);
+            this.updatePreviews();
+          }
+        } catch(e) {
+          console.error(e);
+        }
       }
     });
   }

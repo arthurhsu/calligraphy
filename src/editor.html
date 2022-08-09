@@ -81,6 +81,7 @@
     <input id="export" type="image" src="res/export.png" title="Export" />
     <input id="import" type="image" src="res/import.png" title="Impport from clipboard" />
     <input id="copy" type="image" src="res/copy.png" title="Copy existing" />
+    <input id="rotate" type="image" src="res/rotate.png" title="Rotate" />
   </div>
   <script type="module">
     import {setupCanvasHandlers,
@@ -94,7 +95,8 @@
           512, '#pad', '#preview1', '#preview2', '#bgImage', '#target',
           '#tagbin');
       setupGlyphHandlers(
-          '#glyph', '#move', '#add', '#zoom', '#hashtag', '#import', '#copy');
+          '#glyph', '#move', '#add', '#zoom', '#hashtag', '#import', '#copy',
+          '#rotate');
       setupStrokeHandlers('#stroke', 'edit', '#undo', '#erase', '#add2');
       setupWordHandlers('#load', '#export', '#xslider', '#yslider');
       acquireGlyph();
