@@ -23,8 +23,8 @@ function renderGlyph(json, row, i, isUpperFrame, color='blue') {
       ` viewBox="0 0 512 512" x=${pos['x']} y=${pos['y']}` +
       ` width=${W}px height=${W}px id="${svgId.substring(1)}"></svg>`;
   $('#sheet').append(svgHtml);
-  const glyph = new Glyph().deserialize(svgId, json.glyphs[0]);
-  glyph.renderStrokes(svgId, color);
+  const glyph = new Glyph().deserialize(json.glyphs[0]);
+  glyph.renderStrokes(svgId, false, color);
   return svgId;
 }
 

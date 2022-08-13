@@ -12,7 +12,7 @@ import {Resolver} from './resolver.js';
 import {Util} from './util.js';
 
 class Stroke {
-  constructor(id, canvas) {
+  constructor(id) {
     this.id = id;
     this.vertices = [];  // vertices
     this.vertexIds = [];  // ids for vertices
@@ -20,12 +20,11 @@ class Stroke {
     this.splineIds = [];  // ids for splines
     this.activated = false;
     this.selected = -1;
-    this.canvas = canvas;
     this.resolver = undefined;
   }
 
-  static deserialize(id, canvas, json) {
-    const ret = new Stroke(id, canvas);
+  static deserialize(id, json) {
+    const ret = new Stroke(id);
     for (let i = 0; i < json.dots.length; i += 2) {
       ret.vertexIds.push(`S${ret.id}c${ret.vertices.length}`);
       ret.vertices.push([json.dots[i], json.dots[i + 1]]);
@@ -66,7 +65,7 @@ class Stroke {
   }
 
   // Draw a dot
-  drawDot(x, y) {
+  drawDot(canvas, x, y) {
     const id = `S${this.id}c${this.vertices.length}`;
     createSVG('circle', {
       'id': id,
@@ -76,13 +75,13 @@ class Stroke {
       'fill': 'none',
       'stroke': 'red',
       'stroke-width': 3,
-    }).appendTo(this.canvas);
+    }).appendTo(canvas);
     this.vertices.push([x, y]);
     this.vertexIds.push(id);
   }
 
-  addPath(colorOverride) {
-    const color = colorOverride || this.activated ? 'green' : 'blue'
+  addPath(canvas, colorOverride) {
+    const color = colorOverride || (this.activated ? 'green' : 'blue');
     const id = `S${this.id}s${this.splines.length}`;
     let s = createSVG('path', {
       'id': id,
@@ -95,7 +94,7 @@ class Stroke {
     if (document.querySelector(dotId)) {
       s.insertBefore(dotId);
     } else {
-      s.appendTo(this.canvas);
+      s.appendTo(canvas);
     }
     this.splines.push(s);
     this.splineIds.push(id);
@@ -182,17 +181,17 @@ class Stroke {
   }
 
   // Drawing done, finish the splines
-  finish() {
+  finish(canvas, colorOverride) {
     while (this.splines.length < this.vertices.length - 1) {
-      this.addPath();
+      this.addPath(canvas, colorOverride);
     }
     this.updateSplines();
   }
 
-  animate(speed, color) {
+  animate(canvas, speed, color) {
     // Add a spline every 100 milliseconds
     this.resolver = new Resolver();
-    this.delayDraw(speed, color);
+    this.delayDraw(canvas, speed, color);
     return this.resolver.promise;
   }
 
@@ -214,11 +213,11 @@ class Stroke {
             x[i + 1], y[i + 1]));
   }
 
-  delayDraw(gap, color) {
+  delayDraw(canvas, gap, color) {
     if (this.splines.length < this.vertices.length - 1) {
-      this.addPath(color);
+      this.addPath(canvas, color);
       this.updateLastSpline();
-      Util.sleep(gap).then(this.delayDraw.bind(this, gap, color));
+      Util.sleep(gap).then(this.delayDraw.bind(this, canvas, gap, color));
     } else {
       if (this.resolver) {
         this.resolver.resolve();
@@ -270,18 +269,18 @@ class Stroke {
     }
   }
 
-  addDot() {
+  addDot(canvas) {
     if (this.activated == false) return;
 
     const index = this.vertexIds.length - 1;
     const x = this.vertices[index][0] + 20;
     const y = this.vertices[index][1] + 20;
-    this.drawDot(x, y);
-    this.addPath();
+    this.drawDot(canvas, x, y);
+    this.addPath(canvas);
     this.updateSplines();
   }
 
-  activate() {
+  activate(canvas) {
     if (this.activated == true) return;
 
     for (let i = 0; i < this.vertexIds.length; ++i) {
@@ -293,7 +292,7 @@ class Stroke {
         'fill': 'none',
         'stroke': 'red',
         'stroke-width': 3,
-      }).appendTo(this.canvas);
+      }).appendTo(canvas);
     }
     this.splines.forEach(s => {
       s.get(0).setAttributeNS(null, 'stroke', 'green');
@@ -301,8 +300,8 @@ class Stroke {
     this.activated = true;
   }
 
-  deactivate() {
-    $(this.canvas).children('circle').remove();
+  deactivate(canvas) {
+    $(canvas).children('circle').remove();
     this.splines.forEach(s => {
       s.get(0).setAttributeNS(null, 'stroke', 'blue');
     });

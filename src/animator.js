@@ -11,8 +11,8 @@ function animateGlyph(text, index, gap, speed, canvas, color) {
   Util.fetchGlyph(text).then(json => {
     if (json !== null && json.glyphs.length >= index) {
       let g = new Glyph();
-      g.deserialize(canvas, json.glyphs[index]);
-      g.animate(gap, speed, color);
+      g.deserialize(json.glyphs[index]);
+      g.animate(canvas, gap, speed, color);
     }
   });
 }

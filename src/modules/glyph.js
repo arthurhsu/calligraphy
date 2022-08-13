@@ -51,20 +51,22 @@ class Glyph {
     };
   }
 
-  deserialize(canvas, json) {
+  deserialize(json) {
     if (!json) return this;
-    this.strokes = json.strokes.map((s, i) => Stroke.deserialize(i, canvas, s));
+    this.strokes = json.strokes.map((s, i) => Stroke.deserialize(i, s));
     this.tags = json.tags;
     return this;
   }
 
-  renderStrokes(target, color='blue') {
+  renderStrokes(target, reattach=false, color='blue') {
+    if (!reattach) {
+      this.strokes.forEach((s) => {
+        s.finish(target, color);
+      });
+      return;
+    }
+    
     this.strokes.forEach((s, i) => {
-      s.finish();
-      // Stroke.finish() already created the path on its own canvas
-      // So need to check if target matches
-      if (target == s.canvas) return;
-      
       s.splines.forEach((p, j) => {
         createSVG('path', {
           'id': `S${i}s${j}`,
@@ -78,14 +80,14 @@ class Glyph {
     });
   }
 
-  animate(gap, speed, color) {
+  animate(canvas, gap, speed, color) {
     this.animateIndex++;
     if (this.animateIndex < this.strokes.length) {
       return this.strokes[this.animateIndex]
-          .animate(speed, color)
+          .animate(canvas, speed, color)
           .then(Util
               .sleep(gap)
-              .then(this.animate.bind(this, gap, speed, color)));
+              .then(this.animate.bind(this, canvas, gap, speed, color)));
     }
   }
 

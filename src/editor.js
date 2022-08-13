@@ -4,6 +4,8 @@
  * Copyright 2015 Arthur Hsu. Distributed under Creative Commons License.
  */
 
+import {Canvas} from './modules/canvas.js';
+import {EditorState} from './modules/editor_state.js';
 import {Guide} from './modules/guide.js';
 import {Glyph} from './modules/glyph.js';
 import {Stroke} from './modules/stroke.js';
@@ -71,16 +73,6 @@ function setupWordHandlers(loadBtn, exportBtn, xSlider, ySlider) {
   });
 }
 
-class Canvas {
-  static size;
-  static main;
-  static preview1;
-  static preview2;
-  static bgImage;
-  static target;
-  static tagContainer;
-}
-
 class GlyphEditor {
   static instance;
   static get() {
@@ -103,6 +95,7 @@ class GlyphEditor {
     this.shifting = false;
     this.xbase = 256;
     this.ybase = 256;
+    this.rendered = new Map();
   }
 
   install(glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn,
@@ -198,11 +191,12 @@ class GlyphEditor {
       if (json !== null) {
         json.glyphs.forEach((g, i) => {
           this.addGlyph();
-          this.glyphs[i].deserialize(Canvas.main, g);
+          this.glyphs[i].deserialize(g);
         }, this);
         this.glyphs[0].renderStrokes(Canvas.main);
         $(`${this.selectorId} option:eq(0)`).prop('selected', true);
         this.index = 0;
+        this.rendered[this.index] = true;
         StrokeEditor.get().inflate(this.glyphs[0]);
         this.glyphs[0].getTags().forEach((t, i) => this.renderTag(i, t), this);
         this.updatePreviews();
@@ -254,23 +248,28 @@ class GlyphEditor {
   }
 
   render() {
-    this.getCurrentGlyph().renderStrokes(Canvas.main);
+    const reattach = this.rendered[this.index] || false;
+    this.getCurrentGlyph().renderStrokes(Canvas.main, reattach);
+    StrokeEditor.get().inflate(this.getCurrentGlyph());
+    this.rendered[this.index] = true;
     this.updatePreviews();
   }
 
   updatePreviews() {
     $(Canvas.preview1).empty();
     $(Canvas.preview2).empty();
-    this.getCurrentGlyph().renderStrokes(Canvas.preview1);
-    this.getCurrentGlyph().renderStrokes(Canvas.preview2);
+    this.getCurrentGlyph().renderStrokes(Canvas.preview1, true);
+    this.getCurrentGlyph().renderStrokes(Canvas.preview2, true);
   }
 
   onChange() {
-    const newIndex = $(this.selectorId).val();
+    const newIndex = parseInt($(this.selectorId).val());
     if (newIndex != this.index) {
       this.index = newIndex;
       this.resetCanvas();
       this.render();
+      this.getCurrentGlyph().getTags().forEach(
+          (t, i) => this.renderTag(i, t), this);
     }
   }
 
@@ -300,7 +299,7 @@ class GlyphEditor {
     this.index = this.glyphs.length;
     this.glyphs.push(new Glyph());
     $(this.selectorId).append(
-        `<option value=${this.index}>G${this.index}</option>`);
+        `<option value=${this.index} selected='true'>G${this.index}</option>`);
   }
 
   removeLastStroke() {
@@ -375,12 +374,12 @@ class StrokeEditor {
 
   onChange() {
     if (this.currentStroke !== undefined) {
-      this.currentStroke.deactivate();
+      this.currentStroke.deactivate(Canvas.main);
     }
 
     this.currentStroke =
         GlyphEditor.current().getStroke($(this.strokeSelector).val());
-    this.currentStroke.activate();
+    this.currentStroke.activate(Canvas.main);
     MouseHandler.get().setStroke(this.currentStroke);
   }
 
@@ -426,7 +425,7 @@ class StrokeEditor {
     }
 
     if (this.currentStroke && this.currentStroke.activated) {
-      this.currentStroke.addDot();
+      this.currentStroke.addDot(Canvas.main);
     }
   }
 
@@ -442,7 +441,7 @@ class StrokeEditor {
   getNewStroke(id) {
     $(this.strokeSelector).append(`<option value=${id}>S${id}</option>`);
     $(this.strokeSelector).val(id);
-    const ret = new Stroke(id, Canvas.main);
+    const ret = new Stroke(id);
     this.currentStroke = ret;
     return ret;
   }
@@ -477,7 +476,7 @@ class MouseHandler {
 
   ensureStroke() {
     if (this.currentStroke !== undefined) {
-      this.currentStroke.deactivate();
+      this.currentStroke.deactivate(Canvas.main);
     }
     this.currentStroke =
         StrokeEditor.get().getNewStroke(
@@ -505,10 +504,10 @@ class MouseHandler {
   }
 
   drawMouseup(e) {
-    this.currentStroke.drawDot(e.offsetX, e.offsetY);
+    this.currentStroke.drawDot(Canvas.main, e.offsetX, e.offsetY);
     this.tracking = false;
     if (!this.currentStroke.isEmpty()) {
-      this.currentStroke.finish();
+      this.currentStroke.finish(Canvas.main);
       GlyphEditor.current().addStroke(this.currentStroke);
     }
   }
@@ -533,7 +532,7 @@ class MouseHandler {
       const ptY = e.offsetY;
       if (Math.max(
           Math.abs(ptX - this.lastX), Math.abs(ptY - this.lastY)) > 30) {
-        this.currentStroke.drawDot(ptX, ptY);
+        this.currentStroke.drawDot(Canvas.main, ptX, ptY);
         this.lastX = ptX;
         this.lastY = ptY;
       }
@@ -559,7 +558,7 @@ class MouseHandler {
   drawMousedown(e) {
     this.tracking = true;
     this.ensureStroke();
-    this.currentStroke.drawDot(e.offsetX, e.offsetY);
+    this.currentStroke.drawDot(Canvas.main, e.offsetX, e.offsetY);
     this.lastX = e.offsetX;
     this.lastY = e.offsetY;
   }
@@ -581,13 +580,6 @@ class MouseHandler {
       }
     }
   }
-}
-
-class EditorState {
-  static DRAW = 'draw';
-  static MOVE = 'move';
-  static DELETE = 'delete';
-  static state = EditorState.DRAW;
 }
 
 export {acquireGlyph,
