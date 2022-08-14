@@ -66,6 +66,9 @@ class Glyph {
       return;
     }
     
+    // FIXME: the reattach logic has a fundamental bug that the parentNode
+    // property is null. Therefore setAttributeNS() no longer work (i.e.
+    // color of stroke cannot be set).
     this.strokes.forEach((s, i) => {
       s.splines.forEach((p, j) => {
         createSVG('path', {
