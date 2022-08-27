@@ -150,6 +150,9 @@ class GlyphEditor {
         alert('Must not copy while existing glyph is not empty');
         return;
       }
+      this.glyphs = [];  // Clear existing glyph
+      $('#ht0').remove();  // Remove default tag
+      $(this.selectorId).empty();  // Clear glyph selector
       const text = prompt('Input a Kanji to copy from:');
       if (text && text.length == 1) {
         this.clone(text);
@@ -186,6 +189,7 @@ class GlyphEditor {
     return this.clone(text);
   }
 
+  // Clone assumes this.glyph == []
   clone(text) {
     return Util.fetchGlyph(text).then(json => {
       if (json !== null) {
