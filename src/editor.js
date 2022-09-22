@@ -37,11 +37,11 @@ function setupCanvasHandlers(
 }
 
 function setupGlyphHandlers(
-    glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn, copyBtn,
-    rotateBtn) {
+    glyphSelector, moveCheck, addBtn, zoomBtn, hzoomBtn, vzoomBtn, hashtagBtn,
+    importBtn, copyBtn, rotateBtn) {
   GlyphEditor.get().install(
-      glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn,
-      copyBtn, rotateBtn);
+      glyphSelector, moveCheck, addBtn, zoomBtn, hzoomBtn, vzoomBtn, hashtagBtn,
+      importBtn, copyBtn, rotateBtn);
 }
 
 function setupStrokeHandlers(

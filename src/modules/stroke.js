@@ -354,7 +354,6 @@ class Stroke {
       const y = v[1];
       v[0] = (x - 256) * cost - (y - 256) * sint + 256;
       v[1] = (x - 256) * sint + (y - 256) * cost + 256;
-      console.log(x, y, cost, sint, v[0], v[1]);
       const node = document.getElementById(this.vertexIds[i]);
       if (node) {
         node.setAttributeNS(null, 'cx', v[0]);
