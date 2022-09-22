@@ -120,7 +120,15 @@ class Glyph {
   }
 
   zoom(pct) {
-    this.strokes.forEach(s => s.zoom(pct));
+    this.strokes.forEach(s => s.zoom(pct, true, true));
+  }
+
+  hzoom(pct) {
+    this.strokes.forEach(s => s.zoom(pct, true, false));
+  }
+
+  vzoom(pct) {
+    this.strokes.forEach(s => s.zoom(pct, false, true));
   }
 
   rotate(deg) {

@@ -98,8 +98,8 @@ class GlyphEditor {
     this.rendered = new Map();
   }
 
-  install(glyphSelector, moveCheck, addBtn, zoomBtn, hashtagBtn, importBtn,
-      copyBtn, rotateBtn) {
+  install(glyphSelector, moveCheck, addBtn, zoomBtn, hzoomBtn, vzoomBtn,
+      hashtagBtn, importBtn, copyBtn, rotateBtn) {
     this.selectorId = glyphSelector;
     this.moveCheckboxId = moveCheck;
     $(glyphSelector).on('change', this.onChange.bind(this));
@@ -121,6 +121,20 @@ class GlyphEditor {
       } else if (this.getCurrentGlyph().getNumberOfStrokes()) {
         const pct = parseInt(prompt('Zoom percentage?', '100') || '100');
         this.getCurrentGlyph().zoom(pct);
+        this.updatePreviews();
+      }
+    });
+    $(hzoomBtn).on('click', () => {
+      if (this.getCurrentGlyph().getNumberOfStrokes()) {
+        const pct = parseInt(prompt('HZoom percentage?', '100') || '100');
+        this.getCurrentGlyph().hzoom(pct);
+        this.updatePreviews();
+      }
+    });
+    $(vzoomBtn).on('click', () => {
+      if (this.getCurrentGlyph().getNumberOfStrokes()) {
+        const pct = parseInt(prompt('VZoom percentage?', '100') || '100');
+        this.getCurrentGlyph().vzoom(pct);
         this.updatePreviews();
       }
     });

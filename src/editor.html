@@ -78,6 +78,8 @@
       <img src="res/load.png" alt="Toggle background image" />
     </label>
     <input id="zoom" type="image" src="res/zoom.png" alt="Zoom" />
+    <input id="hzoom" type="image" src="res/hzoom.png" alt="H Zoom" />
+    <input id="vzoom" type="image" src="res/vzoom.png" alt="V Zoom" />
     <input id="export" type="image" src="res/export.png" title="Export" />
     <input id="import" type="image" src="res/import.png" title="Impport from clipboard" />
     <input id="copy" type="image" src="res/copy.png" title="Copy existing" />
@@ -95,8 +97,8 @@
           512, '#pad', '#preview1', '#preview2', '#bgImage', '#target',
           '#tagbin');
       setupGlyphHandlers(
-          '#glyph', '#move', '#add', '#zoom', '#hashtag', '#import', '#copy',
-          '#rotate');
+          '#glyph', '#move', '#add', '#zoom', '#hzoom', '#vzoom', '#hashtag',
+          '#import', '#copy', '#rotate');
       setupStrokeHandlers('#stroke', 'edit', '#undo', '#erase', '#add2');
       setupWordHandlers('#load', '#export', '#xslider', '#yslider');
       acquireGlyph();

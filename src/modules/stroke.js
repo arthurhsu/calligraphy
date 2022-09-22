@@ -330,13 +330,13 @@ class Stroke {
     this.updateSplines();
   }
 
-  zoom(pct) {
+  zoom(pct, zoomx, zoomy) {
     const transform = (value) => {
       return 256 + (value - 256) * (pct / 100);
     };
     this.vertices.forEach((v, i) => {
-      v[0] = transform(v[0]);
-      v[1] = transform(v[1]);
+      v[0] = zoomx ? transform(v[0]) : v[0];
+      v[1] = zoomy ? transform(v[1]) : v[1];
       const node = document.getElementById(this.vertexIds[i]);
       if (node) {
         node.setAttributeNS(null, 'cx', v[0]);
