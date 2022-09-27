@@ -80,6 +80,10 @@ div {
   border: 2px solid #f00;
 }
 
+.editbuttons .ms-drop input[type=checkbox] {
+  display: unset;
+}
+
 .editbuttons input[type=checkbox] {
   display: none;
 }

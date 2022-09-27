@@ -19,6 +19,7 @@ class Stroke {
     this.splines = [];  // splines
     this.splineIds = [];  // ids for splines
     this.activated = false;
+    this.hightlighted = false;
     this.selected = -1;
     this.resolver = undefined;
   }
@@ -300,12 +301,25 @@ class Stroke {
     this.activated = true;
   }
 
-  deactivate(canvas) {
-    $(canvas).children('circle').remove();
+  highlight() {
+    if (this.activated == true || this.hightlighted) return;
+    this.hightlighted = true;
+    this.splines.forEach(s => {
+      s.get(0).setAttributeNS(null, 'stroke', 'brown');
+    });
+  }
+
+  lowlight() {
+    this.hightlighted = false;
     this.splines.forEach(s => {
       s.get(0).setAttributeNS(null, 'stroke', 'blue');
     });
+  }
+
+  deactivate(canvas) {
+    $(canvas).children('circle').remove();
     this.activated = false;
+    this.lowlight();
   }
 
   hshift(offset) {

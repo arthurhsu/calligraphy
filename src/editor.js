@@ -73,6 +73,12 @@ function setupWordHandlers(loadBtn, exportBtn, xSlider, ySlider) {
   });
 }
 
+function setupBatchHandlers(
+    refresh, batch, moveBtn, zoomBtn, hzoomBtn, vzoomBtn, rotateBtn) {
+  GlyphEditor.get().installBatch(
+      refresh, batch, moveBtn, zoomBtn, hzoomBtn, vzoomBtn, rotateBtn);
+}
+
 class GlyphEditor {
   static instance;
   static get() {
@@ -89,10 +95,13 @@ class GlyphEditor {
   constructor() {
     this.index = -1;
     this.selectorId = undefined;
+    this.batchSelect = undefined;
     this.moveCheckboxId = undefined;
+    this.batchMove = undefined;
     this.text = undefined;
     this.glyphs = [];
     this.shifting = false;
+    this.batchShifting = false;
     this.xbase = 256;
     this.ybase = 256;
     this.rendered = new Map();
@@ -118,25 +127,15 @@ class GlyphEditor {
         const shift = (100 - pct) / 2;
         image.style.transform =
             `scale(${pct/100}) translate(${shift}%, ${shift}%)`;
-      } else if (this.getCurrentGlyph().getNumberOfStrokes()) {
-        const pct = parseInt(prompt('Zoom percentage?', '100') || '100');
-        this.getCurrentGlyph().zoom(pct);
-        this.updatePreviews();
+      } else {
+        this.zoom(true, true);
       }
     });
     $(hzoomBtn).on('click', () => {
-      if (this.getCurrentGlyph().getNumberOfStrokes()) {
-        const pct = parseInt(prompt('HZoom percentage?', '100') || '100');
-        this.getCurrentGlyph().hzoom(pct);
-        this.updatePreviews();
-      }
+      this.zoom(true, false);
     });
     $(vzoomBtn).on('click', () => {
-      if (this.getCurrentGlyph().getNumberOfStrokes()) {
-        const pct = parseInt(prompt('VZoom percentage?', '100') || '100');
-        this.getCurrentGlyph().vzoom(pct);
-        this.updatePreviews();
-      }
+      this.zoom(false, true);
     });
     $(hashtagBtn).on('click', () => {
       let tag = prompt('Tag name?', '楷');
@@ -173,20 +172,65 @@ class GlyphEditor {
       }
     });
     $(rotateBtn).on('click', () => {
-      if (this.getCurrentGlyph().getNumberOfStrokes()) {
-        const tag = prompt('Rotate CW degrees?');
-        if (!tag || tag.trim().length == 0) return;
-        try {
-          const deg = parseInt(tag, 10);
-          if (deg) {
-            this.getCurrentGlyph().rotate(deg);
-            this.updatePreviews();
-          }
-        } catch(e) {
-          console.error(e);
+      this.rotate();
+    });
+  }
+
+  highlight() {
+    this.getCurrentGlyph().deselectAll(Canvas.main);
+    this.getCurrentGlyph().highlight(this.getSelects());
+  }
+
+  installBatch(
+      refresh, batch, moveBtn, zoomBtn, hzoomBtn, vzoomBtn, rotateBtn) {
+    $(refresh).on('change', () => {
+      $(batch).empty();
+      if ($(refresh).prop('checked')) {
+        const num = this.getCurrentGlyph().getNumberOfStrokes();
+        for (let i = 0; i < num; i++) {
+          $(batch).append(`<option value="${i}">S${i}</option>`);
         }
+      } else {
+        $(moveBtn).prop('checked', false);
+        this.batchShifting = false;
+      }
+      $(batch).multipleSelect('refresh');
+      this.highlight();
+    });
+    
+    $(batch).on('change', () => {
+      this.highlight();
+    });
+
+    this.batchMove = moveBtn;
+    this.batchSelect = batch;
+    $(moveBtn).on('change', this.onToggleBatchMove.bind(this));
+    $(zoomBtn).on('click', () => {
+      if ($(refresh).prop('checked')) {
+        this.zoom(true, true);
       }
     });
+    $(hzoomBtn).on('click', () => {
+      if ($(refresh).prop('checked')) {
+        this.zoom(true, false);
+      }
+    });
+    $(vzoomBtn).on('click', () => {
+      if ($(refresh).prop('checked')) {
+        this.zoom(false, true);
+      }
+    });
+    $(rotateBtn).on('click', () => {
+      if ($(refresh).prop('checked')) {
+        this.rotate();
+      }
+    });
+  }
+
+  getSelects() {
+    return $(this.batchSelect)
+        .multipleSelect('getSelects')
+        .map(e => parseInt(e));
   }
 
   getCurrentGlyph() {
@@ -295,21 +339,56 @@ class GlyphEditor {
     this.shifting = $(this.moveCheckboxId).prop('checked');
   }
 
+  onToggleBatchMove() {
+    this.batchShifting = $(this.batchMove).prop('checked');
+  }
+
   hshift(e) {
-    if (this.shifting) {
+    if (this.shifting || this.batchShifting) {
       const offset = e.target.valueAsNumber - this.xbase;
       this.xbase = e.target.valueAsNumber;
-      this.getCurrentGlyph().hshift(offset);
+      const strokeSet = this.batchShifting ? this.getSelects() : undefined;
+      this.getCurrentGlyph().hshift(offset, strokeSet);
       this.updatePreviews();
     }
   }
 
   vshift(e) {
-    if (this.shifting) {
+    if (this.shifting || this.batchShifting) {
       const offset = e.target.valueAsNumber - this.ybase;
       this.ybase = e.target.valueAsNumber;
-      this.getCurrentGlyph().vshift(offset);
+      const strokeSet = this.batchShifting ? this.getSelects() : undefined;
+      this.getCurrentGlyph().vshift(offset, strokeSet);
       this.updatePreviews();
+    }
+  }
+
+  zoom(h, v) {
+    if (this.getCurrentGlyph().getNumberOfStrokes()) {
+      const lit = (h && v) ? 'Zoom' : (h ? 'HZoom' : 'VZoom');
+      const pct = parseInt(prompt(`${lit} percentage?`, '100') || '100');
+      const batchSet = this.getSelects();
+      const strokeSet = (batchSet && batchSet.length) ? batchSet : undefined;
+      this.getCurrentGlyph().zoom(pct, h, v, strokeSet);
+      this.updatePreviews();
+    }
+  }
+
+  rotate() {
+    if (this.getCurrentGlyph().getNumberOfStrokes()) {
+      const tag = prompt('Rotate CW degrees?');
+      if (!tag || tag.trim().length == 0) return;
+      try {
+        const deg = parseInt(tag, 10);
+        if (deg) {
+          const batchSet = this.getSelects();
+          const strokeSet = (batchSet && batchSet.length) ? batchSet : undefined;
+          this.getCurrentGlyph().rotate(deg, strokeSet);
+          this.updatePreviews();
+        }
+      } catch(e) {
+        console.error(e);
+      }
     }
   }
 
@@ -601,6 +680,7 @@ class MouseHandler {
 }
 
 export {acquireGlyph,
+        setupBatchHandlers,
         setupCanvasHandlers,
         setupGlyphHandlers,
         setupStrokeHandlers,

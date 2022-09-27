@@ -94,12 +94,36 @@ class Glyph {
     }
   }
 
-  hshift(offset) {
-    this.strokes.forEach(s => s.hshift(offset));
+  highlight(strokeSet) {
+    this.strokes.forEach((s, i) => {
+      if (strokeSet.indexOf(i) == -1) {
+        s.lowlight();
+      } else {
+        s.highlight();
+      }
+    });
   }
 
-  vshift(offset) {
-    this.strokes.forEach(s => s.vshift(offset));
+  deselectAll(canvas) {
+    this.strokes.forEach(s => {
+      if (s.activated) {
+        s.deactivate(canvas);
+      }
+    });
+  }
+
+  getTargets(strokeSet) {
+    return strokeSet ?
+        this.strokes.filter((v, i) => strokeSet.indexOf(i) != -1) :
+        this.strokes;
+  }
+
+  hshift(offset, strokeSet) {
+    this.getTargets(strokeSet).forEach(s => s.hshift(offset));
+  }
+
+  vshift(offset, strokeSet) {
+    this.getTargets(strokeSet).forEach(s => s.vshift(offset));
   }
 
   hasTag(tag) {
@@ -119,20 +143,12 @@ class Glyph {
     return index == -1 ? null : this.tags.splice(index, 1)[0];
   }
 
-  zoom(pct) {
-    this.strokes.forEach(s => s.zoom(pct, true, true));
+  zoom(pct, h, v, strokeSet) {
+    this.getTargets(strokeSet).forEach(s => s.zoom(pct, h, v));
   }
 
-  hzoom(pct) {
-    this.strokes.forEach(s => s.zoom(pct, true, false));
-  }
-
-  vzoom(pct) {
-    this.strokes.forEach(s => s.zoom(pct, false, true));
-  }
-
-  rotate(deg) {
-    this.strokes.forEach(s => s.rotate(deg));
+  rotate(deg, strokeSet) {
+    this.getTargets(strokeSet).forEach(s => s.rotate(deg));
   }
 }
 
