@@ -28,6 +28,7 @@ class GlyphEditor {
     this.selectorId = undefined;
     this.batchSelect = undefined;
     this.moveCheckboxId = undefined;
+    this.refreshCheckId = undefined;
     this.batchMove = undefined;
     this.text = undefined;
     this.glyphs = [];
@@ -114,6 +115,7 @@ class GlyphEditor {
 
   installBatch(
       refresh, batch, moveBtn, zoomBtn, hzoomBtn, vzoomBtn, rotateBtn) {
+    this.refreshCheckId = refresh;
     $(refresh).on('change', () => {
       $(batch).empty();
       if ($(refresh).prop('checked')) {
@@ -159,9 +161,12 @@ class GlyphEditor {
   }
 
   getSelects() {
-    return $(this.batchSelect)
-        .multipleSelect('getSelects')
-        .map(e => parseInt(e));
+    if ($(this.refreshCheckId).prop('checked')) {
+      return $(this.batchSelect)
+          .multipleSelect('getSelects')
+          .map(e => parseInt(e));
+    }
+    return [];
   }
 
   getCurrentGlyph() {
