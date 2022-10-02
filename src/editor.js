@@ -72,6 +72,60 @@ function setupWordHandlers(loadBtn, exportBtn, xSlider, ySlider) {
   });
 }
 
+function setupShuffleHandlers(shuffleBtn, dialog, sortable, done) {
+  $(dialog).dialog({
+    autoOpen: false,
+    buttons: {
+      'OK': () => {
+        const arr = $(sortable).children();
+        const newOrder = [];
+        for (let i = 0; i < arr.length; ++i) {
+          newOrder.push(arr[i]['value']);
+        }
+        console.log(newOrder);
+        GlyphEditor.get().shuffle(newOrder);
+        $(dialog).dialog('close');
+      },
+      'Cancel': () => {
+        $(dialog).dialog('close');
+      }
+    }
+  });
+  $(sortable).sortable({
+    connectWith: sortable,
+    zIndex: 99999,
+    helper: function() {
+      let helper = $( '.sortHelper li' );
+      if ( !helper.length ) {
+          helper = $('<ul><li></li></ul>')
+              .addClass( 'sortHelper' )
+              .appendTo( 'body' )
+              .find( 'li' )
+              .css( { 'z-index': 9999 } );
+      }
+      return helper;
+    },
+    start: function(event, ui) {
+      ui.helper.text(ui.item.text());
+    }
+  });
+  $(shuffleBtn).on('click', () => {
+    if ($(dialog).dialog('isOpen' == false)) {
+      const numStrokes =
+          GlyphEditor.get().getCurrentGlyph().getNumberOfStrokes();
+      if (numStrokes <= 0) return;
+      $(sortable).empty();
+      for (let i = 0; i < numStrokes; i++) {
+        $(sortable).append(`<li value=${i}>S${i}</li>`);
+      }
+      $(dialog).dialog('open');
+    }
+  });
+  $(done).on('click', () => {
+    $(dialog).dialog('close');
+  });
+}
+
 function setupBatchHandlers(
     refresh, batch, moveBtn, zoomBtn, hzoomBtn, vzoomBtn, rotateBtn) {
   GlyphEditor.get().installBatch(
@@ -82,5 +136,6 @@ export {acquireGlyph,
         setupBatchHandlers,
         setupCanvasHandlers,
         setupGlyphHandlers,
+        setupShuffleHandlers,
         setupStrokeHandlers,
         setupWordHandlers}

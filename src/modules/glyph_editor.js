@@ -366,6 +366,10 @@ class GlyphEditor {
     this.getCurrentGlyph().removeTag(e.target.textContent);
     $(`#${e.target.id}`).remove();
   }
+
+  shuffle(newOrder) {
+    this.getCurrentGlyph().shuffle(newOrder);
+  }
 }
 
 export {GlyphEditor}

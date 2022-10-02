@@ -150,6 +150,12 @@ class Glyph {
   rotate(deg, strokeSet) {
     this.getTargets(strokeSet).forEach(s => s.rotate(deg));
   }
+
+  shuffle(newOrder) {
+    const newStrokes = [];
+    newOrder.forEach(v => newStrokes.push(this.strokes[v]), this);
+    this.strokes = newStrokes;
+  }
 }
 
 export {Glyph}

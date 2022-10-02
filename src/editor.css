@@ -158,3 +158,8 @@ input[type="range"] {
   border-radius: 5px;
   cursor: pointer;
 }
+
+ol {
+  list-style-type: decimal;
+  margin-left: 1em;
+}
