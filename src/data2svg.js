@@ -1,7 +1,13 @@
+// @ts-check
+/**
+ * @license
+ * Copyright 2022 Arthur Hsu. Distributed under Creative Commons License.
+ */
+
 const fs = require('fs');
 const path = require('path');
 
-function toSVG(filePath, code, glyph = 0, color = 'blue', width = 16) {
+function toSVG(filePath, code, glyph, color = 'blue', width) {
   const json = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
   let contents = [];
   contents.push(
@@ -31,7 +37,8 @@ function toSVG(filePath, code, glyph = 0, color = 'blue', width = 16) {
 }
 
 function main() {
-  if (process.argc < 3 || process.argc > 6) {
+  const argc = process.argv.length;
+  if (argc < 3 || argc > 6) {
     console.error('Usage: data2svg <Unicode> [glyph] [color] [stroke width]');
     process.exit(1);
   }
@@ -39,7 +46,11 @@ function main() {
   const filePath = path.resolve(
       `${__dirname}/../data/${code.substring(0, 1)}/${code}.json`);
   if (fs.existsSync(filePath)) {
-    toSVG(filePath, code, process.argv[3], process.argv[4], process.argv[5]);
+    toSVG(filePath,
+          code,
+          process.argv[3] ? parseInt(process.argv[3], 10) : 0,
+          process.argv[4] || 'blue',
+          process.argv[5] ? parseInt(process.argv[5], 10) : 0);
   }
 }
 
