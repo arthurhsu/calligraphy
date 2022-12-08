@@ -20,6 +20,6 @@ BY-NC-SA. Please read the license carefully before using my stuff.
 
 # 常見問題解答
 
-字體和台灣標準字體不見得相同，因為這是硬筆書法 :)
+字體和台灣標準字體不見得相同，因為這是硬筆書法 
 
 目前暫無製作簡體字的打算，因為我沒練過簡體字 ...
